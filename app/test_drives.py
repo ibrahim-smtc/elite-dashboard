@@ -10,7 +10,7 @@ this section reads nothing else: no car bookings, no general enquiries.
   Bookings   test drives with their slot - booked, attended, no-show,
              cancelled - booked by the AI agent on the call
              (dsr.book_test_drive), by the sales desk, or for a walk-in.
-  Samples    made-up drives (sample = true, db/test_drive_samples.sql) that
+  Samples    made-up drives (sample = true) that
              fill the calendar for showing it. They hold no slot.
 
 Read, never written: the cars (dim_model, dim_variant), the sales executives
