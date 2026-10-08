@@ -98,6 +98,21 @@ COMMENT ON FUNCTION dsr.pii_guard() IS
    through the app.';
 
 
+-- FIX (2026-10-09): the live Supabase test_drive_booking table had lost its
+-- `phone` column (dropped by hand after the PII mandate), while the app
+-- (app/test_drives.py) and db/test_drives.sql still read and write it. The
+-- Test Drives board would fail on that database, and db/pii_backfill.sql died
+-- with `column "phone" does not exist` and rolled back, leaving home addresses
+-- unredacted. Put the column back: from here on it only ever holds NULL or
+-- '[REDACTED]' (the trigger below), so it stores no PII. No-op if present.
+DO $$
+BEGIN
+    IF to_regclass('dsr.test_drive_booking') IS NOT NULL THEN
+        ALTER TABLE dsr.test_drive_booking ADD COLUMN IF NOT EXISTS phone text;
+    END IF;
+END $$;
+
+
 -- Every column that can hold a customer's phone, email or address, and every
 -- free-text column a customer's words can land in. Customer NAME columns are
 -- scrubbed too: the CRM export sometimes writes the phone or the email into

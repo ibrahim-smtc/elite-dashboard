@@ -70,6 +70,9 @@ UPDATE dsr.allotment
 DO $$
 BEGIN
     IF to_regclass('dsr.test_drive_booking') IS NOT NULL THEN
+        -- FIX (2026-10-09): see db/pii.sql - the live table had lost this
+        -- column, and the UPDATE below failed on it. No-op if present.
+        ALTER TABLE dsr.test_drive_booking ADD COLUMN IF NOT EXISTS phone text;
         UPDATE dsr.test_drive_booking
            SET phone    = dsr.pii_redact(phone),
                address  = dsr.pii_redact(address),
