@@ -302,6 +302,16 @@ export async function uploadWorkbookInBackground(
     throw new Error("The server accepted the file but did not return a job id.");
   }
 
+  // FIX (2026-10-09): on Vercel the server cannot run a job in the background
+  // (a serverless function is frozen once it replies), so it does the whole
+  // load before answering and the reply already carries the outcome. There is
+  // nothing to poll - and a poll could reach a different instance that has
+  // never heard of the job. See start_upload in app/entry.py.
+  if (started.state === "done") return started.result || {};
+  if (started.state === "failed") {
+    throw new Error(started.error || "The ingest failed on the server.");
+  }
+
   // Poll until it finishes. Failures to reach the server are tolerated for a
   // while: the ingest is running server-side regardless of this connection,
   // which is the whole point of doing it this way.

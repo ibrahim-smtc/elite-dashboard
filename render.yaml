@@ -1,0 +1,27 @@
+# Render Blueprint: deploys the dashboard as one always-on web service.
+#
+# Why Render as well as Vercel: Vercel runs the app as short-lived serverless
+# functions, so it cannot hold the live-update stream open (the page shows
+# SNAPSHOT instead of LIVE). A Render web service stays running, so the page
+# shows LIVE and a dashboard upload runs as a background job with progress.
+#
+# Region: Singapore, the closest Render region to the Supabase database
+# (ap-southeast-2, Sydney). A DSR upload is thousands of small queries, so
+# the distance to the database is most of its running time.
+services:
+  - type: web
+    name: elite-dashboard
+    runtime: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      # Secrets: Render asks for these when the Blueprint is created.
+      - key: DATABASE_URL
+        sync: false
+      - key: PERFOX_API_KEY
+        sync: false

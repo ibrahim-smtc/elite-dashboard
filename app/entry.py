@@ -21,6 +21,7 @@ import uuid
 from datetime import date, datetime
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
+from starlette.concurrency import run_in_threadpool
 import openpyxl
 import psycopg
 from psycopg.errors import IntegrityError
@@ -684,17 +685,41 @@ async def start_upload(
     _job_set(job_id, state="queued", step="queued", filename=fname,
              period=period_label, started_at=time.time(), mode=mode, covers=covers,
              covers_from=covers_date, covers_to=(covers_date_end or covers_date))
+    worker_args = (job_id, content, fname, period_label, period_start, period_end,
+                   uploaded_by, mode)
+    reply = {"job_id": job_id, "state": "queued", "period": period_label,
+             "filename": fname, "mode": mode, "covers": covers,
+             "covers_from": covers_date, "covers_to": covers_date_end or covers_date}
+
+    # FIX (2026-10-09): on Vercel an upload never finished - the dashboard sat
+    # on "Ingesting the workbook... 130s, still working" for ever. Vercel runs
+    # the app as serverless functions and FREEZES a function the moment it has
+    # sent its reply, so the background thread below stopped part-way, and the
+    # job registry (_JOBS, in this process's memory) is not shared between
+    # function instances, so the status polls could not find it either. On
+    # Vercel the work is therefore done INSIDE this request, and the finished
+    # result goes back in the reply itself (the page uses it without polling:
+    # uploadWorkbookInBackground in frontend/src/api/client.js). vercel.json
+    # pins the function to the Sydney region, next to the Supabase database, so
+    # the many small queries of a load are fast enough to finish in the
+    # function's time limit. Persistent hosts (Render, a laptop) keep the
+    # background thread: the ~100 s load would not survive a 60 s gateway.
+    if os.environ.get("VERCEL"):
+        await run_in_threadpool(_ingest_worker, *worker_args)
+        job = _job_get(job_id) or {}
+        reply.update(state=job.get("state", "failed"), result=job.get("result"),
+                     error=job.get("error"), counts=job.get("counts"),
+                     warnings=job.get("warnings"))
+        return reply
+
     threading.Thread(
         target=_ingest_worker,
-        args=(job_id, content, fname, period_label, period_start, period_end,
-              uploaded_by, mode),
+        args=worker_args,
         daemon=True,
         name=f"ingest-{job_id[:8]}",
     ).start()
 
-    return {"job_id": job_id, "state": "queued", "period": period_label,
-            "filename": fname, "mode": mode, "covers": covers,
-            "covers_from": covers_date, "covers_to": covers_date_end or covers_date}
+    return reply
 
 
 @router.get("/api/upload-report/status/{job_id}", tags=["ingestion"])
