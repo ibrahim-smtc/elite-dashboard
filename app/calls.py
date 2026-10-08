@@ -30,6 +30,7 @@ are fetched when a call is actually opened.
 
 import logging
 import os
+import re
 from typing import Any
 from urllib.parse import quote
 
@@ -87,6 +88,28 @@ def _get(path: str) -> Any:
         return r.json()
     except ValueError:
         raise HTTPException(502, "The agent's call service returned something unreadable.")
+
+
+# FIX (2026-10-09): the call transcript and the one-line summary are what was
+# SAID on the call, and customers read their phone number out ("Mera mobile
+# number hai 8822441722"). The Calls page relays that text to every browser, so
+# a number spoken on a call was shown in full next to a redacted caller column.
+# etl.pii.scrub_text catches an ordinary number and an email; a speech-to-text
+# transcript also writes a number digit by digit ("8 8 2 2 4 4 1 7 2 2") or in
+# groups, which that pattern does not. Any run of ten or more digits, with
+# single spaces or hyphens between them, is therefore treated as a phone number
+# here. A six-digit reference number the agent reads back is left alone. What
+# can NOT be caught: digits spoken as words ("eight eight two...", or in Hindi),
+# and any address - and the audio recording itself is Perfox's file, not ours.
+_SPOKEN_NUMBER = re.compile(r"(?<![0-9])(?:[0-9][ -]?){9,}[0-9](?![0-9])")
+
+
+def _scrub_spoken(text: str | None) -> str | None:
+    """Phone numbers and emails out of what was said on a call."""
+    text = pii.scrub_text(text)
+    if text is None:
+        return None
+    return _SPOKEN_NUMBER.sub(pii.PHONE_MARK, text)
 
 
 def _seconds(v: Any) -> int:
@@ -202,7 +225,7 @@ def list_calls():
             "ended_at": c.get("ended_at"),
             "duration_seconds": _seconds(c.get("duration_seconds")),
             "has_recording": bool(c.get("has_recording")),
-            "summary": (c.get("summary") or "").strip() or None,
+            "summary": _scrub_spoken((c.get("summary") or "").strip() or None),
             # From the case, which is where Perfox keeps its QA scoring. Null
             # when a call has no case rather than guessed at.
             "sentiment": _sentiment(qa.get("sentiment")) if qa else None,
@@ -282,7 +305,7 @@ def call_transcript(conversation_id: str = Path(..., min_length=8, max_length=64
             if text:
                 turns.append({
                     "who": "customer" if kind == "user_message" else "agent",
-                    "text": text,
+                    "text": _scrub_spoken(text),
                     "at": e.get("created_at"),
                 })
         elif kind == "tool_call":
