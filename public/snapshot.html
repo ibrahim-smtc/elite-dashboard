@@ -1,0 +1,702 @@
+<title>Elite Motors August DSR</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ===================================================================
+   Tokens. Complete light palette on bare :root; dark redefines only
+   tokens, under both the OS query and the explicit theme stamp.
+   Neutrals are biased cool/slate rather than pure grey - the page sits
+   next to VW's own graphite-and-blue identity.
+   =================================================================== */
+:root {
+  color-scheme: light;
+  --page:      #eef1f5;
+  --surface:   #fbfcfd;
+  --sunken:    #e6ebf1;
+  --ink:       #0e1216;
+  --ink-2:     #48535e;
+  --muted:     #7c8792;
+  --rule:      #d6dde5;
+  --rule-soft: #e4e9ef;
+  --accent:    #1c5cab;
+
+  /* chart marks - the validated categorical trio and blue ordinal ramp */
+  --s1: #2a78d6;  --s2: #eb6834;  --s3: #1baf7a;
+  --o1: #86b6ef;  --o2: #5598e7;  --o3: #2a78d6;  --o4: #1c5cab;  --o5: #104281;
+
+  --good: #0ca30c;  --warning: #fab219;  --serious: #ec835a;  --critical: #d03b3b;
+  --good-ink: #006300;  --crit-ink: #a82a2a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page:      #101316;
+    --surface:   #191d21;
+    --sunken:    #14181c;
+    --ink:       #f2f4f6;
+    --ink-2:     #a9b3be;
+    --muted:     #7c8792;
+    --rule:      #2a3038;
+    --rule-soft: #23282e;
+    --accent:    #5598e7;
+    --s1: #3987e5;  --s2: #d95926;  --s3: #199e70;
+    --o1: #184f95;  --o2: #256abf;  --o3: #3987e5;  --o4: #6da7ec;  --o5: #9ec5f4;
+    --good-ink: #0ca30c;  --crit-ink: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page:      #101316;
+  --surface:   #191d21;
+  --sunken:    #14181c;
+  --ink:       #f2f4f6;
+  --ink-2:     #a9b3be;
+  --muted:     #7c8792;
+  --rule:      #2a3038;
+  --rule-soft: #23282e;
+  --accent:    #5598e7;
+  --s1: #3987e5;  --s2: #d95926;  --s3: #199e70;
+  --o1: #184f95;  --o2: #256abf;  --o3: #3987e5;  --o4: #6da7ec;  --o5: #9ec5f4;
+  --good-ink: #0ca30c;  --crit-ink: #e66767;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 400 15px/1.6 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.sheet { max-width: 1080px; margin: 0 auto; padding: 44px 26px 80px; }
+
+h1, h2, h3, .fig, .eyebrow {
+  font-family: Archivo, "Archivo Narrow", system-ui, sans-serif;
+}
+.mono, td.mono, .chassis {
+  font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---- masthead: a report header, not a hero ---- */
+.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 16px; }
+.marque { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: baseline;
+          justify-content: space-between; }
+h1 { font-size: clamp(26px, 4.4vw, 38px); font-weight: 700; letter-spacing: -0.025em;
+     margin: 0; line-height: 1.05; text-wrap: balance; }
+.marque .where { color: var(--ink-2); font-size: 13.5px; }
+.strap { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 13px;
+         color: var(--ink-2); font-size: 13px; }
+.strap b { color: var(--ink); font-weight: 500; }
+.strap .sep { color: var(--rule); }
+
+/* ---- section furniture ---- */
+section { margin-top: 46px; }
+.eyebrow {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+h2 { font-size: 21px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 6px; }
+.lede { color: var(--ink-2); font-size: 14.5px; margin: 0 0 22px; max-width: 66ch; }
+
+/* ---- the month against target ---- */
+.outcome {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 4px; padding: 24px 26px;
+  display: grid; gap: 30px;
+  grid-template-columns: minmax(min(210px, 100%), 0.9fr) 1fr;
+  align-items: center;
+}
+@media (max-width: 720px) { .outcome { grid-template-columns: 1fr; } }
+.headline .label { color: var(--ink-2); font-size: 13px; letter-spacing: 0.01em; }
+.headline .fig {
+  font-size: 76px; font-weight: 700; line-height: 0.94; letter-spacing: -0.04em;
+  margin: 6px 0 2px;
+}
+.headline .of { font-family: "IBM Plex Sans", sans-serif; font-size: 15px;
+                font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.headline .verdict { font-size: 13.5px; color: var(--crit-ink); font-weight: 500; }
+
+.against { display: grid; gap: 17px; }
+.against .row { display: grid; grid-template-columns: 96px 1fr 124px; gap: 13px;
+                align-items: center; font-size: 13.5px; }
+.against .row .k { color: var(--ink-2); }
+.against .row .v { color: var(--ink); text-align: right; font-size: 13px; }
+.against .row .v em { color: var(--muted); font-style: normal; }
+.track { position: relative; height: 9px; background: var(--sunken);
+         border-radius: 4px; overflow: hidden; }
+.track > i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+.track > u { position: absolute; top: -3px; bottom: -3px; width: 2px;
+             background: var(--ink); border-radius: 1px; }
+
+/* ---- charts ---- */
+/* min(400px, 100%) not 400px: a bare minmax minimum cannot shrink, so a narrow
+   window would scroll sideways instead of the columns stacking. */
+.pair { display: grid; gap: 30px;
+        grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr)); }
+figure { margin: 0; }
+figcaption { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--ink-2); font: 11.5px "IBM Plex Sans", sans-serif; }
+svg text.v { fill: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+svg text.m { fill: var(--muted); font-variant-numeric: tabular-nums; }
+svg .g { stroke: var(--rule-soft); stroke-width: 1; }
+svg .b { stroke: var(--rule); stroke-width: 1; }
+svg .t { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+
+.key { display: flex; flex-wrap: wrap; gap: 7px 16px; margin-bottom: 14px;
+       color: var(--ink-2); font-size: 12.5px; }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+.key i { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+/* ---- tables ---- */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+caption { text-align: left; color: var(--muted); font-size: 12.5px;
+          padding-bottom: 9px; }
+th, td { padding: 8px 12px 8px 0; text-align: left; white-space: nowrap;
+         border-bottom: 1px solid var(--rule-soft); }
+thead th { color: var(--muted); font-weight: 600; font-size: 11px;
+           letter-spacing: 0.09em; text-transform: uppercase;
+           border-bottom: 1px solid var(--rule); }
+/* Right-aligned columns keep the base 12px right padding so a narrow numeric
+   header (TDs) cannot touch the header beside it, and gain left padding so the
+   number does not crowd the column before it. */
+td.r, th.r { text-align: right; padding-left: 20px; }
+tr > :last-child { padding-right: 0; }
+tbody tr:last-child td { border-bottom: none; }
+tfoot td { color: var(--muted); font-size: 12.5px; padding-top: 10px;
+           border-bottom: none; }
+td .bul { display: block; position: relative; height: 8px; width: 96px;
+          background: var(--sunken); border-radius: 4px; }
+td .bul > i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+td .bul > u { position: absolute; top: -3px; bottom: -3px; width: 2px;
+              background: var(--ink); }
+
+/* ---- chase list: severity in form, not only colour ---- */
+.chase { display: grid; gap: 3px; }
+.chase > article {
+  display: grid; grid-template-columns: 3px 1fr auto; gap: 0 15px;
+  align-items: start; background: var(--surface);
+  border: 1px solid var(--rule); border-left: none; padding: 0;
+}
+.chase .stripe { background: var(--critical); }
+.chase .body { padding: 15px 0 16px; }
+.chase .side { padding: 15px 18px 16px 0; text-align: right; }
+.chase h3 { font-size: 15px; font-weight: 600; margin: 0 0 3px; letter-spacing: -0.01em; }
+.chase p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: 62ch; }
+.chase .count { font-family: Archivo, sans-serif; font-size: 27px; font-weight: 700;
+                letter-spacing: -0.03em; line-height: 1; }
+.chase .unit { color: var(--muted); font-size: 11.5px; letter-spacing: 0.04em;
+               text-transform: uppercase; }
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px;
+        font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
+        color: var(--ink-2); border: 1px solid var(--rule); border-radius: 3px;
+        padding: 1px 7px; }
+.chip i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.detail { margin-top: 14px; }
+.detail summary { cursor: pointer; color: var(--accent); font-size: 13px;
+                  font-weight: 500; padding: 3px 0; }
+.detail summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.detail[open] summary { margin-bottom: 10px; }
+
+/* ---- data quality ---- */
+.dq { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+      border-radius: 4px; overflow: hidden; }
+.dq > div { background: var(--surface); padding: 14px 17px;
+            display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; }
+.dq .issue { font-weight: 500; font-size: 14px; }
+.dq .detail-t { color: var(--ink-2); font-size: 13px; grid-column: 1 / -1;
+                margin: 0; max-width: 74ch; }
+
+footer { margin-top: 54px; padding-top: 20px; border-top: 1px solid var(--rule);
+         color: var(--muted); font-size: 12.5px; }
+footer p { margin: 0 0 7px; max-width: 78ch; }
+code { font-family: "IBM Plex Mono", monospace; font-size: 0.92em;
+       background: var(--sunken); padding: 1px 5px; border-radius: 3px; }
+</style>
+
+<div class="sheet">
+  <header class="masthead">
+    <div class="marque">
+      <h1>Volkswagen Elite Motors</h1>
+      <div class="where">Authorised dealership &middot; Hosur Road, Bengaluru</div>
+    </div>
+    <div class="strap" id="strap"></div>
+  </header>
+
+  <section>
+    <div class="eyebrow">Where the month landed</div>
+    <h2>August 2026 against target</h2>
+    <p class="lede">
+      Retails are the number Volkswagen scores the dealership on. Bookings and
+      enquiries are the two upstream stages that produce them.
+    </p>
+    <div class="outcome">
+      <div class="headline" id="headline"></div>
+      <div class="against" id="against"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Pipeline</div>
+    <h2>From enquiry to retail</h2>
+    <p class="lede">
+      Each stage against its target. The month converted 11.4% of enquiries into
+      bookings, then 42.9% of those bookings into retails &mdash; the drop from
+      booking to retail is where the shortfall sits.
+    </p>
+    <div class="pair">
+      <figure>
+        <div id="c-funnel"></div>
+        <figcaption>Tick marks the month&rsquo;s target. Test-drive count is taken
+          from the consultant scorecards, not the workbook&rsquo;s test-drive tab,
+          which was never refreshed.</figcaption>
+      </figure>
+      <figure>
+        <div id="c-src"></div>
+        <figcaption>Enquiries by channel. Central Webin arrives through the CRM
+          queue &mdash; the largest source, and the one that booked nothing.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">People</div>
+    <h2>Consultant scorecard</h2>
+    <p class="lede">
+      Nine consultants across two teams. Targets sit on each consultant&rsquo;s
+      primary-channel row; achievement is summed across both their rows. Ordered by
+      the gap to booking target.
+    </p>
+    <div class="scroll"><table id="t-board"></table></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Inventory</div>
+    <h2>What is on the floor</h2>
+    <p class="lede">
+      69 cars free, 20 allotted. Ageing runs from billing date, and 20 units have
+      been standing more than 90 days &mdash; each one carrying interest.
+    </p>
+    <div class="pair">
+      <figure>
+        <div class="key" id="k-age"></div>
+        <div id="c-age"></div>
+        <figcaption>Free and allotted units by days since Volkswagen billed
+          them.</figcaption>
+      </figure>
+      <figure>
+        <div class="key" id="k-model"></div>
+        <div id="c-model"></div>
+        <figcaption>Supply against demand per model family. The Taigun facelift is
+          ordered as its own model but booked as plain &ldquo;Taigun&rdquo;, so both
+          are rolled together here.</figcaption>
+      </figure>
+    </div>
+    <div class="detail"><details>
+      <summary>Free stock by variant and colour</summary>
+      <div class="scroll"><table id="t-avail"></table></div>
+    </details></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Action</div>
+    <h2>What needs chasing</h2>
+    <p class="lede">
+      Three queues came out of the load, in the order Volkswagen asks about them.
+    </p>
+    <div class="chase" id="chase"></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Caveats</div>
+    <h2>Where the workbook disagrees with itself</h2>
+    <p class="lede">
+      The DSR is maintained by hand and its tabs are refreshed at different times,
+      so some of them do not match the rows they summarise. Each disagreement is
+      recorded rather than quietly resolved.
+    </p>
+    <div class="dq" id="dq"></div>
+  </section>
+
+  <footer>
+    <p><b>Source</b> &mdash; <span id="f-src" class="mono"></span>, loaded into
+      PostgreSQL 17 as the <code>dsr</code> schema: six fact tables (vehicle, lead,
+      test drive, booking, allotment, registration), six reference tables and four
+      target tables, with twenty views over them.</p>
+    <p><b>This page is a frozen snapshot</b>, safe to send on: the figures were read
+      once, at the time above, and baked into the file. The database behind it is
+      live &mdash; the dashboard at <code>/</code> takes records as they are entered
+      and repaints itself the moment anything changes, and the
+      <code>/agent/*</code> endpoints expose the same views to the
+      dealership&rsquo;s service and client agents. Re-run
+      <code>tools/build_snapshot.py</code> for a fresh one.</p>
+  </footer>
+</div>
+
+<script id="dsr-data" type="application/json">{"kpi":{"period":"AUG2026","enquiries":367,"qualified":361,"test_drives":128.0,"bookings":42,"retails":18,"enquiry_to_booking_pct":11.4,"booking_to_retail_pct":42.9,"free_stock":69,"allotted_stock":20,"stock_over_90_days":20,"backorders":11,"bookings_missing_crm_entry":15,"booking_amount_collected":943001.0,"avg_allotment_tat_days":3.5},"funnel":{"period":"AUG2026","enquiries":367,"qualified":361,"test_drives":128.0,"bookings":42,"retails":18},"targets":{"leads_target":450.0,"td_target":300.0,"booking_target":84.0,"retail_target":66.0},"board":[{"consultant":"Sreejith K R","team":"PRINCE","primary_channel":"WALKIN","total_leads":54.0,"td_achieved":18.0,"booking_target":12.0,"booking_achieved":4.0,"booking_gap":-8.0,"booking_vs_target_pct":33.3,"retail_target":10.0,"retail_achieved":2.0,"retail_vs_target_pct":20.0,"booking_conv_pct":7.4},{"consultant":"Rishabh J","team":null,"primary_channel":"WALKIN","total_leads":8.0,"td_achieved":4.0,"booking_target":7.0,"booking_achieved":0.0,"booking_gap":-7.0,"booking_vs_target_pct":0.0,"retail_target":5.0,"retail_achieved":0.0,"retail_vs_target_pct":0.0,"booking_conv_pct":0.0},{"consultant":"Sanjeev","team":"NETHRA","primary_channel":"TELE","total_leads":37.0,"td_achieved":17.0,"booking_target":13.0,"booking_achieved":8.0,"booking_gap":-5.0,"booking_vs_target_pct":61.5,"retail_target":11.0,"retail_achieved":4.0,"retail_vs_target_pct":36.4,"booking_conv_pct":21.6},{"consultant":"Akhilesh","team":"PRINCE","primary_channel":"WALKIN","total_leads":60.0,"td_achieved":17.0,"booking_target":12.0,"booking_achieved":7.0,"booking_gap":-5.0,"booking_vs_target_pct":58.3,"retail_target":10.0,"retail_achieved":3.0,"retail_vs_target_pct":30.0,"booking_conv_pct":11.7},{"consultant":"Sudhir Poojary","team":"NETHRA","primary_channel":"TELE","total_leads":39.0,"td_achieved":25.0,"booking_target":12.0,"booking_achieved":7.0,"booking_gap":-5.0,"booking_vs_target_pct":58.3,"retail_target":10.0,"retail_achieved":2.0,"retail_vs_target_pct":20.0,"booking_conv_pct":17.9},{"consultant":"Lokesh Reddy K","team":"NETHRA","primary_channel":"TELE","total_leads":22.0,"td_achieved":16.0,"booking_target":7.0,"booking_achieved":2.0,"booking_gap":-5.0,"booking_vs_target_pct":28.6,"retail_target":5.0,"retail_achieved":1.0,"retail_vs_target_pct":20.0,"booking_conv_pct":9.1},{"consultant":"Aditya Kumar","team":"PRINCE","primary_channel":"WALKIN","total_leads":53.0,"td_achieved":10.0,"booking_target":8.0,"booking_achieved":5.0,"booking_gap":-3.0,"booking_vs_target_pct":62.5,"retail_target":6.0,"retail_achieved":2.0,"retail_vs_target_pct":33.3,"booking_conv_pct":9.4},{"consultant":"Abinand P","team":"NETHRA","primary_channel":"TELE","total_leads":32.0,"td_achieved":2.0,"booking_target":7.0,"booking_achieved":4.0,"booking_gap":-3.0,"booking_vs_target_pct":57.1,"retail_target":5.0,"retail_achieved":2.0,"retail_vs_target_pct":40.0,"booking_conv_pct":12.5},{"consultant":"Bhuvaneshwari A","team":"PRINCE","primary_channel":"WALKIN","total_leads":50.0,"td_achieved":19.0,"booking_target":6.0,"booking_achieved":5.0,"booking_gap":-1.0,"booking_vs_target_pct":83.3,"retail_target":4.0,"retail_achieved":2.0,"retail_vs_target_pct":50.0,"booking_conv_pct":10.0}],"teams":[{"consultant":"Field Team (Tele & Digital) - Nethra","total_leads":130.0,"booking_target":39.0,"booking_achieved":21.0,"retail_target":31.0,"retail_achieved":9.0},{"consultant":"S/R Team (Walkin, CRM & W/s) Prince","total_leads":225.0,"booking_target":45.0,"booking_achieved":21.0,"retail_target":35.0,"retail_achieved":9.0}],"sources":[{"source":"CRM","channel":"CRM","is_paid_media":false,"leads":160,"qualified":155,"qualified_pct":96.9},{"source":"TELE","channel":"TELE","is_paid_media":false,"leads":77,"qualified":76,"qualified_pct":98.7},{"source":"WALKIN","channel":"WALKIN","is_paid_media":false,"leads":77,"qualified":77,"qualified_pct":100.0},{"source":"DIGITAL","channel":"DIGITAL","is_paid_media":true,"leads":45,"qualified":45,"qualified_pct":100.0},{"source":"REFERENCE","channel":"REFERRAL","is_paid_media":false,"leads":5,"qualified":5,"qualified_pct":100.0},{"source":"WORKSHOP REFERRAL","channel":"WORKSHOP","is_paid_media":false,"leads":2,"qualified":2,"qualified_pct":100.0},{"source":"SHOWROOM REFERRAL","channel":"REFERRAL","is_paid_media":false,"leads":1,"qualified":1,"qualified_pct":100.0}],"models":[{"model":"TAIGUN","free_stock":38,"allotted_stock":9,"total_stock":47,"free_over_90_days":9,"bookings_this_period":21,"backorders_this_period":6,"registered":7},{"model":"VIRTUS","free_stock":30,"allotted_stock":11,"total_stock":41,"free_over_90_days":8,"bookings_this_period":20,"backorders_this_period":4,"registered":11},{"model":"TAYRON","free_stock":1,"allotted_stock":0,"total_stock":1,"free_over_90_days":1,"bookings_this_period":1,"backorders_this_period":1,"registered":0}],"demand":[{"model":"VIRTUS","enquiries":187,"bookings":20,"free_stock":30,"enquiry_to_booking_pct":10.7},{"model":"TAIGUN","enquiries":169,"bookings":21,"free_stock":38,"enquiry_to_booking_pct":12.4},{"model":"TAYRON","enquiries":7,"bookings":1,"free_stock":1,"enquiry_to_booking_pct":14.3}],"ageing":[{"model":"VIRTUS","ageing_bucket":"91-180","units":6,"avg_days":139.2,"max_days":164},{"model":"TAIGUN (FL)","ageing_bucket":"91-180","units":6,"avg_days":113.7,"max_days":131},{"model":"VIRTUS","ageing_bucket":"61-90","units":9,"avg_days":72.9,"max_days":76},{"model":"TAYRON","ageing_bucket":"91-180","units":1,"avg_days":97.0,"max_days":97},{"model":"TAIGUN (FL)","ageing_bucket":"61-90","units":13,"avg_days":70.3,"max_days":87},{"model":"TAIGUN","ageing_bucket":"91-180","units":1,"avg_days":93.0,"max_days":93},{"model":"TAIGUN (FL)","ageing_bucket":"31-60","units":11,"avg_days":35.4,"max_days":49},{"model":"VIRTUS","ageing_bucket":"31-60","units":13,"avg_days":37.8,"max_days":59},{"model":"VIRTUS","ageing_bucket":"0-30","units":9,"avg_days":11.4,"max_days":24},{"model":"TAIGUN (FL)","ageing_bucket":"0-30","units":14,"avg_days":14.9,"max_days":24},{"model":"TAIGUN","ageing_bucket":"180+","units":2,"avg_days":214.0,"max_days":216},{"model":"VIRTUS","ageing_bucket":"180+","units":4,"avg_days":193.8,"max_days":220}],"backorders":[{"booking_id":66,"booking_date":"2025-05-03","days_waiting":495,"customer_name":"PRAVEEN KUMAR K J","mobile":null,"consultant":"Sudhir Poojary","model":"TAIGUN","model_family":"TAIGUN","variant":"1.5 DSG SPORT","colour":"Steel Gray Solid","source":"REFERENCE","source_sheet":"Pending Booking","is_current_period":false,"matching_free_units":0},{"booking_id":67,"booking_date":"2025-05-03","days_waiting":495,"customer_name":"KUSHAL","mobile":null,"consultant":"Tejas","model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE MT","colour":"Candy White","source":"WALKIN","source_sheet":"Pending Booking","is_current_period":false,"matching_free_units":0},{"booking_id":70,"booking_date":"2025-05-03","days_waiting":495,"customer_name":"CHHANDASRI MISHRA","mobile":null,"consultant":"Sudhir Poojary","model":"VIRTUS","model_family":"VIRTUS","variant":"TOPLINE AT","colour":"Carbon Steel Gray Metallic","source":"TELE","source_sheet":"Pending Booking","is_current_period":false,"matching_free_units":1},{"booking_id":68,"booking_date":"2025-05-03","days_waiting":495,"customer_name":"SANJAI S","mobile":null,"consultant":"Sreejith K R","model":"TAIGUN","model_family":"TAIGUN","variant":"1.5 DSG SPORT","colour":"Candy White","source":"WALKIN","source_sheet":"Pending Booking","is_current_period":false,"matching_free_units":0},{"booking_id":65,"booking_date":"2025-05-03","days_waiting":495,"customer_name":"MELWIN GLADSON","mobile":null,"consultant":"Thameem","model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG SPORT","colour":"Deep Black Pearlescent","source":"TELE","source_sheet":"Pending Booking","is_current_period":false,"matching_free_units":0},{"booking_id":71,"booking_date":"2025-05-05","days_waiting":493,"customer_name":"ARMAAN BAHADUR","mobile":"[REDACTED]","consultant":"Tejas P","model":"GOLF GTI","model_family":"GOLF","variant":"GOLF GTI","colour":"Moonstone Gray / Black","source":"CRM","source_sheet":"Golf & Tiguan R Line Booking","is_current_period":false,"matching_free_units":0},{"booking_id":64,"booking_date":"2026-05-02","days_waiting":131,"customer_name":"PARAMANAND","mobile":null,"consultant":"Naveen Y","model":"TAIGUN","model_family":"TAIGUN","variant":"HL AT","colour":"Lava Blue Metallic","source":"TELE","source_sheet":"Pending Booking","is_current_period":false,"matching_free_units":0},{"booking_id":63,"booking_date":"2026-05-02","days_waiting":131,"customer_name":"ROHIT KUMAR","mobile":null,"consultant":"Naveen Y","model":"TAIGUN","model_family":"TAIGUN","variant":"CL MT","colour":"Carbon Steel Gray Metallic","source":"TELE","source_sheet":"Pending Booking","is_current_period":false,"matching_free_units":0},{"booking_id":77,"booking_date":"2026-07-18","days_waiting":54,"customer_name":"VEDAVATHI","mobile":null,"consultant":"Sreejith K R","model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE AT","colour":"Deep Black Pearlescent","source":null,"source_sheet":"Booking & Alloted","is_current_period":false,"matching_free_units":0},{"booking_id":82,"booking_date":"2026-07-22","days_waiting":50,"customer_name":"NIRMAL KUMAR LOGANATHAN","mobile":null,"consultant":"Sanjeev","model":"TAYRON","model_family":"TAYRON","variant":"TAYRON","colour":"Dolphin Grey","source":null,"source_sheet":"Booking & Alloted","is_current_period":false,"matching_free_units":0},{"booking_id":4,"booking_date":"2026-08-08","days_waiting":33,"customer_name":"TUSHAR K BHARATI","mobile":null,"consultant":"Lokesh Reddy K","model":"VIRTUS","model_family":"VIRTUS","variant":"CL MT","colour":"Lava Blue Metallic","source":"TELE","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0},{"booking_id":5,"booking_date":"2026-08-09","days_waiting":32,"customer_name":"N ROOPESH REDDY","mobile":null,"consultant":"Aditya Kumar","model":"TAIGUN","model_family":"TAIGUN","variant":"HL MT","colour":"Lava Blue Metallic","source":"WALKIN","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0},{"booking_id":9,"booking_date":"2026-08-10","days_waiting":31,"customer_name":"KARTHICK","mobile":null,"consultant":"Sreejith K R","model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE MT","colour":"Candy White","source":"WALKIN","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0},{"booking_id":7,"booking_date":"2026-08-10","days_waiting":31,"customer_name":"SACHIN MOHANAN","mobile":null,"consultant":"Aditya Kumar","model":"TAIGUN","model_family":"TAIGUN","variant":"HL MT","colour":"Lava Blue Metallic","source":"WALKIN","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0},{"booking_id":15,"booking_date":"2026-08-14","days_waiting":27,"customer_name":"JAYASHREE","mobile":null,"consultant":"Akhilesh","model":"TAIGUN","model_family":"TAIGUN","variant":"1.5 MT SPORT","colour":"Wild Cherry Red Metallic","source":"REFERENCE","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0},{"booking_id":19,"booking_date":"2026-08-16","days_waiting":25,"customer_name":"V ARJUN NARESH","mobile":null,"consultant":"Sanjeev","model":"TAIGUN","model_family":"TAIGUN","variant":"HL AT","colour":"Wild Cherry Red Metallic","source":"TELE","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0},{"booking_id":17,"booking_date":"2026-08-16","days_waiting":25,"customer_name":"ARJUN SOM","mobile":null,"consultant":"Lokesh Reddy K","model":"TAIGUN","model_family":"TAIGUN","variant":"1.5 DSG","colour":"Avocado Green Pearlescent","source":"DIGITAL","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0},{"booking_id":29,"booking_date":"2026-08-22","days_waiting":19,"customer_name":"HARISH","mobile":null,"consultant":"Sanjeev","model":"TAYRON","model_family":"TAYRON","variant":"TAYRON","colour":"Ultraviolet","source":"TELE","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0},{"booking_id":35,"booking_date":"2026-08-26","days_waiting":15,"customer_name":"VIGNESH","mobile":null,"consultant":"Abinand P","model":"VIRTUS","model_family":"VIRTUS","variant":"HL PLUS MT","colour":"Candy White","source":"TELE","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0},{"booking_id":38,"booking_date":"2026-08-29","days_waiting":12,"customer_name":"ABHILASH","mobile":null,"consultant":"Bhuvaneshwari A","model":"TAIGUN","model_family":"TAIGUN","variant":"TOPLINE MT","colour":"Candy White","source":"WALKIN","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0},{"booking_id":42,"booking_date":"2026-08-30","days_waiting":11,"customer_name":"HARSHITH V","mobile":null,"consultant":"Abinand P","model":"VIRTUS","model_family":"VIRTUS","variant":"HL PLUS MT","colour":"Candy White","source":"DIGITAL","source_sheet":"Current Month Booking","is_current_period":true,"matching_free_units":0}],"deadline":[{"chassis_number":"MEXA26CW2TT015532","model":"TAIGUN","variant":"1.5 DSG SPORT","colour":"Lava Blue Metallic","stock_aging_days":216,"nadcon_retail_date":"2026-01-31"},{"chassis_number":"MEXC26D23TT031419","model":"VIRTUS","variant":"1.5 DSG SPORT","colour":"Carbon Steel Gray Metallic","stock_aging_days":164,"nadcon_retail_date":"2026-03-31"},{"chassis_number":"MEXC26D22TT031413","model":"VIRTUS","variant":"1.5 DSG SPORT","colour":"Lava Blue Metallic","stock_aging_days":164,"nadcon_retail_date":"2026-03-31"},{"chassis_number":"MEXC26D22TT033162","model":"VIRTUS","variant":"GT LINE MT","colour":"Lava Blue Metallic","stock_aging_days":140,"nadcon_retail_date":"2026-04-30"},{"chassis_number":"MEXD26CW6TT020133","model":"TAIGUN (FL)","variant":"GT LINE AT","colour":"Wild Cherry Red Metallic","stock_aging_days":129,"nadcon_retail_date":"2026-04-30"},{"chassis_number":"MEXC26D28TT029651","model":"VIRTUS","variant":"HL PLUS MT","colour":"Lava Blue Metallic","stock_aging_days":158,"nadcon_retail_date":"2026-04-30"},{"chassis_number":"MEXD26CW8TT019775","model":"TAIGUN (FL)","variant":"TOPLINE AT","colour":"Lava Blue Metallic","stock_aging_days":131,"nadcon_retail_date":"2026-04-30"},{"chassis_number":"MEXD26CW1TT019567","model":"TAIGUN (FL)","variant":"1.5 DSG SPORT","colour":"Candy White / Deep Black Pearlescent","stock_aging_days":131,"nadcon_retail_date":"2026-05-31"},{"chassis_number":"MEXD26CW1TT019360","model":"TAIGUN (FL)","variant":"TOPLINE AT","colour":"Lava Blue Metallic","stock_aging_days":105,"nadcon_retail_date":"2026-05-31"},{"chassis_number":"MEXD26D25TT036867","model":"VIRTUS","variant":"TOPLINE AT","colour":"Carbon Steel Gray Metallic","stock_aging_days":116,"nadcon_retail_date":"2026-05-31"},{"chassis_number":"MEXF26D26TT042797","model":"VIRTUS","variant":"GT LINE MT","colour":"Carbon Steel Gray Metallic","stock_aging_days":75,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXE26D27TT039161","model":"VIRTUS","variant":"GT LINE AT","colour":"Wild Cherry Red Metallic","stock_aging_days":74,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXE26CW5TT022587","model":"TAIGUN (FL)","variant":"1.5 DSG","colour":"Carbon Steel Gray Metallic","stock_aging_days":73,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXE26CW3TT024399","model":"TAIGUN (FL)","variant":"1.5 DSG","colour":"Lava Blue Metallic","stock_aging_days":73,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXD26D2XTT035097","model":"VIRTUS","variant":"HL AT","colour":"Candy White","stock_aging_days":73,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXE26CW7TT024955","model":"TAIGUN (FL)","variant":"GT LINE AT","colour":"Deep Black Pearlescent","stock_aging_days":73,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXE26CW4TT024783","model":"TAIGUN (FL)","variant":"1.5 DSG","colour":"Carbon Steel Gray Metallic","stock_aging_days":73,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXE26D21TT039723","model":"VIRTUS","variant":"GT LINE AT","colour":"Candy White","stock_aging_days":76,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXA26CW6TT016151","model":"TAIGUN","variant":"1.5 DSG SPORT","colour":"Carbon Steel Gray Metallic","stock_aging_days":212,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXD26CW3TT021935","model":"TAIGUN (FL)","variant":"1.5 DSG SPORT","colour":"Wild Cherry Red Metallic / Deep Black Pearlescent","stock_aging_days":93,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXC26D23TT031923","model":"VIRTUS","variant":"1.5 DSG","colour":"Wild Cherry Red Metallic / Deep Black Pearlescent","stock_aging_days":93,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXD26CW1TT019939","model":"TAIGUN (FL)","variant":"1.5 DSG SPORT","colour":"Carbon Steel Gray Metallic","stock_aging_days":93,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXB26CW3TT017813","model":"TAIGUN","variant":"1.5 DSG SPORT","colour":"Carbon Steel Gray Metallic","stock_aging_days":93,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXD26CW0TT019785","model":"TAIGUN (FL)","variant":"1.5 DSG SPORT","colour":"Carbon Steel Gray Metallic","stock_aging_days":87,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXD26D21TT034114","model":"VIRTUS","variant":"1.5 DSG SPORT","colour":"Wild Cherry Red Metallic / Deep Black Pearlescent","stock_aging_days":76,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXE26CW9TT024584","model":"TAIGUN (FL)","variant":"1.5 DSG","colour":"Deep Black Pearlescent","stock_aging_days":76,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXE26D22TT040332","model":"VIRTUS","variant":"GT LINE AT","colour":"Wild Cherry Red Metallic","stock_aging_days":75,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXF26D22TT043915","model":"VIRTUS","variant":"GT LINE MT","colour":"Deep Black Pearlescent","stock_aging_days":66,"nadcon_retail_date":"2026-06-30"},{"chassis_number":"MEXB26D22TT027695","model":"VIRTUS","variant":"TOPLINE AT","colour":"Reflex Silver Metallic","stock_aging_days":185,"nadcon_retail_date":"2026-07-31"},{"chassis_number":"MEXG26D29TT044905","model":"VIRTUS","variant":"GT LINE MT","colour":"Deep Black Pearlescent","stock_aging_days":59,"nadcon_retail_date":"2026-07-31"},{"chassis_number":"MEXE26D29TT039727","model":"VIRTUS","variant":"GT LINE AT","colour":"Lava Blue Metallic","stock_aging_days":39,"nadcon_retail_date":"2026-07-31"},{"chassis_number":"MEXG26D22TT047788","model":"VIRTUS","variant":"GT LINE MT","colour":"Reflex Silver Metallic","stock_aging_days":39,"nadcon_retail_date":"2026-07-31"},{"chassis_number":"MEXG26CW1TT029013","model":"TAIGUN (FL)","variant":"HL AT","colour":"Candy White","stock_aging_days":37,"nadcon_retail_date":"2026-07-31"},{"chassis_number":"MEXF26D29TT043409","model":"VIRTUS","variant":"GT LINE MT","colour":"Carbon Steel Gray Metallic","stock_aging_days":68,"nadcon_retail_date":"2026-07-31"}],"nocrm":[{"customer_name":"KARTHICK","consultant":"Sreejith K R","model":"VIRTUS","variant":"GT LINE MT","booking_date":"2026-08-10"},{"customer_name":"DEEPAK","consultant":"Abinand P","model":"TAIGUN","variant":"1.5 DSG SPORT","booking_date":"2026-08-14"},{"customer_name":"SANKARE","consultant":"Sudhir Poojary","model":"TAIGUN","variant":"TOPLINE AT","booking_date":"2026-08-20"},{"customer_name":"HARISH","consultant":"Sanjeev","model":"TAYRON","variant":"TAYRON","booking_date":"2026-08-22"},{"customer_name":"PRONOJIT SINGH","consultant":"Sudhir Poojary","model":"TAIGUN","variant":"GT LINE AT","booking_date":"2026-08-22"},{"customer_name":"SANJAY A S","consultant":"Akhilesh","model":"VIRTUS","variant":"1.5 DSG SPORT","booking_date":"2026-08-23"},{"customer_name":"DEEPTHAJOTHI S","consultant":"Sudhir Poojary","model":"VIRTUS","variant":"GT LINE AT","booking_date":"2026-08-23"},{"customer_name":"VIGNESH","consultant":"Abinand P","model":"VIRTUS","variant":"HL PLUS MT","booking_date":"2026-08-26"},{"customer_name":"FAZAL AHMAD MANSOORI","consultant":"Sudhir Poojary","model":"VIRTUS","variant":"TOPLINE AT","booking_date":"2026-08-27"},{"customer_name":"PREETHAM POOJARY","consultant":"Sanjeev","model":"TAIGUN","variant":"GT LINE AT","booking_date":"2026-08-27"},{"customer_name":"ABHILASH","consultant":"Bhuvaneshwari A","model":"TAIGUN","variant":"TOPLINE MT","booking_date":"2026-08-29"},{"customer_name":"MULBERRY RESIDENCY","consultant":"Sudhir Poojary","model":"VIRTUS","variant":"GT LINE AT","booking_date":"2026-08-30"},{"customer_name":"PARTHIBAN G K","consultant":"Akhilesh","model":"VIRTUS","variant":"1.5 DSG SPORT","booking_date":"2026-08-30"},{"customer_name":"TONY CHRISHTOPER DAVID","consultant":"Sanjeev","model":"VIRTUS","variant":"TOPLINE AT","booking_date":"2026-08-30"},{"customer_name":"HARSHITH V","consultant":"Abinand P","model":"VIRTUS","variant":"HL PLUS MT","booking_date":"2026-08-30"}],"attach":{"registrations":18,"financed":13,"insured":13,"extended_warranty":1,"service_value_package":1,"corporate":6,"finance_pct":72.2,"insurance_pct":72.2},"dq":[{"issue":"Bookings not entered in the CRM","detail":"Bookings on the August tab with ZOHO ENTRY = NO. These will not appear in VW-side reporting until they are punched.","affected_rows":"15","severity":"high"},{"issue":"Test drive tab is stale","detail":"The TD tab holds a November 2024 export, not August 2026 activity. Funnel views take test drives from the scorecard instead.","affected_rows":"31","severity":"high"},{"issue":"Stock past its NADCON retail deadline","detail":"Units whose VW retail deadline has already passed while still unsold.","affected_rows":"34","severity":"high"},{"issue":"Registration report stops at accounts","detail":"On the Reg Report tab the columns from FOLDER SENT TO HO rightwards - invoice date, registration date, registration number, VOIW id and delivery date - are blank on every row, so the fulfilment stage has to be read from the status column instead.","affected_rows":"21","severity":"medium"},{"issue":"August lead export is missing consultant and status columns","detail":"The Leads tab exported only date, name, source and model of interest, so per-consultant enquiry counts must come from the scorecard.","affected_rows":"367","severity":"medium"},{"issue":"Comparision tab disagrees with the base tabs","detail":"Comparision reports 350 enquiries / 37 bookings / 20 retails; the underlying tabs hold 367 / 42 / 18.","affected_rows":"3","severity":"medium"},{"issue":"Daily Tracker holds two conflicting target blocks","detail":"The upper block sets a different enquiry target for the same consultant than the lower block. Views read BLOCK_2 (full roster).","affected_rows":"1","severity":"medium"}],"meta":{"source_file":"DSR August 2026.xlsx","file_modified":"2026-09-08T13:14:37.806007","finished_at":"2026-09-10T17:04:44.426712+05:30"},"period":{"label":"SEP2026","period_start":"2026-09-01","period_end":"2026-09-30"},"commit":[{"period":"AUG2026","consultant_label":"AKILESH","window_label":"TILL 12TH","committed":4.0,"achieved":1.0,"variance":-3.0},{"period":"AUG2026","consultant_label":"AKILESH","window_label":"13 TO 19","committed":2.0,"achieved":2.0,"variance":0.0},{"period":"AUG2026","consultant_label":"AKILESH","window_label":"20 TO 26","committed":2.0,"achieved":1.0,"variance":-1.0},{"period":"AUG2026","consultant_label":"ABBAS","window_label":"TILL 12TH","committed":2.0,"achieved":1.0,"variance":-1.0},{"period":"AUG2026","consultant_label":"ABBAS","window_label":"13 TO 19","committed":null,"achieved":0.0,"variance":0.0},{"period":"AUG2026","consultant_label":"RISHAB","window_label":"TILL 12TH","committed":1.0,"achieved":1.0,"variance":0.0},{"period":"AUG2026","consultant_label":"RISHAB","window_label":"13 TO 19","committed":2.0,"achieved":0.0,"variance":-2.0},{"period":"AUG2026","consultant_label":"RISHAB","window_label":"20 TO 26","committed":2.0,"achieved":null,"variance":-2.0},{"period":"AUG2026","consultant_label":"BHUVANESWARI","window_label":"20 TO 26","committed":null,"achieved":2.0,"variance":2.0},{"period":"AUG2026","consultant_label":"SREEJITH","window_label":"TILL 12TH","committed":0.0,"achieved":1.0,"variance":1.0},{"period":"AUG2026","consultant_label":"SREEJITH","window_label":"13 TO 19","committed":3.0,"achieved":3.0,"variance":0.0},{"period":"AUG2026","consultant_label":"SREEJITH","window_label":"20 TO 26","committed":3.0,"achieved":4.0,"variance":1.0},{"period":"AUG2026","consultant_label":"ADITYA","window_label":"TILL 12TH","committed":0.0,"achieved":0.0,"variance":0.0},{"period":"AUG2026","consultant_label":"ADITYA","window_label":"13 TO 19","committed":0.0,"achieved":1.0,"variance":1.0},{"period":"AUG2026","consultant_label":"PRINCE","window_label":"TILL 12TH","committed":7.0,"achieved":4.0,"variance":-3.0},{"period":"AUG2026","consultant_label":"PRINCE","window_label":"13 TO 19","committed":7.0,"achieved":6.0,"variance":-1.0},{"period":"AUG2026","consultant_label":"PRINCE","window_label":"20 TO 26","committed":7.0,"achieved":7.0,"variance":0.0},{"period":"AUG2026","consultant_label":"SANJEEV","window_label":"TILL 12TH","committed":4.0,"achieved":4.0,"variance":0.0},{"period":"AUG2026","consultant_label":"SANJEEV","window_label":"13 TO 19","committed":2.0,"achieved":1.0,"variance":-1.0},{"period":"AUG2026","consultant_label":"SANJEEV","window_label":"20 TO 26","committed":2.0,"achieved":3.0,"variance":1.0},{"period":"AUG2026","consultant_label":"SUDIR","window_label":"TILL 12TH","committed":3.0,"achieved":3.0,"variance":0.0},{"period":"AUG2026","consultant_label":"SUDIR","window_label":"13 TO 19","committed":2.0,"achieved":1.0,"variance":-1.0},{"period":"AUG2026","consultant_label":"SUDIR","window_label":"20 TO 26","committed":2.0,"achieved":4.0,"variance":2.0},{"period":"AUG2026","consultant_label":"ABHINAND P","window_label":"20 TO 26","committed":1.0,"achieved":1.0,"variance":0.0},{"period":"AUG2026","consultant_label":"LOKESH","window_label":"TILL 12TH","committed":2.0,"achieved":0.0,"variance":-2.0},{"period":"AUG2026","consultant_label":"LOKESH","window_label":"13 TO 19","committed":1.0,"achieved":0.0,"variance":-1.0},{"period":"AUG2026","consultant_label":"LOKESH","window_label":"20 TO 26","committed":1.0,"achieved":1.0,"variance":0.0},{"period":"AUG2026","consultant_label":"HANI","window_label":"TILL 12TH","committed":2.0,"achieved":1.0,"variance":-1.0},{"period":"AUG2026","consultant_label":"HANI","window_label":"13 TO 19","committed":2.0,"achieved":0.0,"variance":-2.0},{"period":"AUG2026","consultant_label":"HANI","window_label":"20 TO 26","committed":2.0,"achieved":4.0,"variance":2.0},{"period":"AUG2026","consultant_label":"NETRA","window_label":"TILL 12TH","committed":11.0,"achieved":8.0,"variance":-3.0},{"period":"AUG2026","consultant_label":"NETRA","window_label":"13 TO 19","committed":7.0,"achieved":2.0,"variance":-5.0},{"period":"AUG2026","consultant_label":"NETRA","window_label":"20 TO 26","committed":8.0,"achieved":13.0,"variance":5.0}],"avail":[{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"TOPLINE AT","transmission":"AT","colour":"Lava Blue Metallic","free_units":3,"freshest_days":14,"oldest_days":131,"earliest_retail_deadline":"2026-04-30"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE AT","transmission":"AT","colour":"Lava Blue Metallic","free_units":3,"freshest_days":31,"oldest_days":39,"earliest_retail_deadline":"2026-07-31"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE MT","transmission":"MT","colour":"Deep Black Pearlescent","free_units":3,"freshest_days":20,"oldest_days":66,"earliest_retail_deadline":"2026-06-30"},{"model":"TAIGUN","model_family":"TAIGUN","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Carbon Steel Gray Metallic","free_units":2,"freshest_days":93,"oldest_days":212,"earliest_retail_deadline":"2026-06-30"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG","transmission":"DSG","colour":"Carbon Steel Gray Metallic","free_units":2,"freshest_days":73,"oldest_days":73,"earliest_retail_deadline":"2026-06-30"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Lava Blue Metallic","free_units":2,"freshest_days":14,"oldest_days":18,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Candy White / Deep Black Pearlescent","free_units":2,"freshest_days":49,"oldest_days":131,"earliest_retail_deadline":"2026-05-31"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Avocado Green Pearlescent / Deep Black Pearlescent","free_units":2,"freshest_days":31,"oldest_days":63,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Carbon Steel Gray Metallic","free_units":2,"freshest_days":87,"oldest_days":93,"earliest_retail_deadline":"2026-06-30"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Steel Gray Solid / Deep Black Pearlescent","free_units":2,"freshest_days":31,"oldest_days":62,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"GT LINE AT","transmission":"AT","colour":"Deep Black Pearlescent","free_units":2,"freshest_days":14,"oldest_days":73,"earliest_retail_deadline":"2026-06-30"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"GT LINE AT","transmission":"AT","colour":"Steel Gray Solid","free_units":2,"freshest_days":14,"oldest_days":63,"earliest_retail_deadline":null},{"model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG","transmission":"DSG","colour":"Carbon Steel Matte","free_units":2,"freshest_days":31,"oldest_days":33,"earliest_retail_deadline":null},{"model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE AT","transmission":"AT","colour":"Wild Cherry Red Metallic","free_units":2,"freshest_days":74,"oldest_days":75,"earliest_retail_deadline":"2026-06-30"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE MT","transmission":"MT","colour":"Carbon Steel Gray Metallic","free_units":2,"freshest_days":68,"oldest_days":75,"earliest_retail_deadline":"2026-06-30"},{"model":"TAIGUN","model_family":"TAIGUN","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Lava Blue Metallic","free_units":1,"freshest_days":216,"oldest_days":216,"earliest_retail_deadline":"2026-01-31"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG","transmission":"DSG","colour":"Lava Blue Metallic","free_units":1,"freshest_days":73,"oldest_days":73,"earliest_retail_deadline":"2026-06-30"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG","transmission":"DSG","colour":"Deep Black Pearlescent","free_units":1,"freshest_days":76,"oldest_days":76,"earliest_retail_deadline":"2026-06-30"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Carbon Steel Matte","free_units":1,"freshest_days":39,"oldest_days":39,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Wild Cherry Red Metallic / Deep Black Pearlescent","free_units":1,"freshest_days":93,"oldest_days":93,"earliest_retail_deadline":"2026-06-30"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Deep Black Pearlescent","free_units":1,"freshest_days":14,"oldest_days":14,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"GT LINE AT","transmission":"AT","colour":"Wild Cherry Red Metallic","free_units":1,"freshest_days":129,"oldest_days":129,"earliest_retail_deadline":"2026-04-30"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"GT LINE AT","transmission":"AT","colour":"Lava Blue Metallic","free_units":1,"freshest_days":14,"oldest_days":14,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"GT LINE AT","transmission":"AT","colour":"Avocado Green Pearlescent","free_units":1,"freshest_days":41,"oldest_days":41,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"GT LINE MT","transmission":"MT","colour":"Steel Gray Solid","free_units":1,"freshest_days":73,"oldest_days":73,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"HL AT","transmission":"AT","colour":"Candy White","free_units":1,"freshest_days":37,"oldest_days":37,"earliest_retail_deadline":"2026-07-31"},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"TOPLINE AT","transmission":"AT","colour":"Deep Black Pearlescent","free_units":1,"freshest_days":33,"oldest_days":33,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"TOPLINE AT","transmission":"AT","colour":"Candy White","free_units":1,"freshest_days":18,"oldest_days":18,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"TOPLINE AT","transmission":"AT","colour":"Steel Gray Solid","free_units":1,"freshest_days":18,"oldest_days":18,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"TOPLINE AT","transmission":"AT","colour":"Avocado Green Pearlescent","free_units":1,"freshest_days":31,"oldest_days":31,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"TOPLINE MT","transmission":"MT","colour":"Carbon Steel Gray Metallic","free_units":1,"freshest_days":10,"oldest_days":10,"earliest_retail_deadline":null},{"model":"TAIGUN (FL)","model_family":"TAIGUN","variant":"TOPLINE MT","transmission":"MT","colour":"Avocado Green Pearlescent","free_units":1,"freshest_days":18,"oldest_days":18,"earliest_retail_deadline":null},{"model":"TAYRON","model_family":"TAYRON","variant":"TAYRON","transmission":null,"colour":"Grenadilla Black Metallic","free_units":1,"freshest_days":97,"oldest_days":97,"earliest_retail_deadline":null},{"model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG","transmission":"DSG","colour":"Deep Black Pearlescent","free_units":1,"freshest_days":31,"oldest_days":31,"earliest_retail_deadline":null},{"model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG","transmission":"DSG","colour":"Wild Cherry Red Metallic / Deep Black Pearlescent","free_units":1,"freshest_days":93,"oldest_days":93,"earliest_retail_deadline":"2026-06-30"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG","transmission":"DSG","colour":"Candy White / Deep Black Pearlescent","free_units":1,"freshest_days":33,"oldest_days":33,"earliest_retail_deadline":null},{"model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG","transmission":"DSG","colour":"Lava Blue Metallic","free_units":1,"freshest_days":31,"oldest_days":31,"earliest_retail_deadline":null},{"model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Carbon Steel Gray Metallic","free_units":1,"freshest_days":164,"oldest_days":164,"earliest_retail_deadline":"2026-03-31"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Carbon Steel Matte","free_units":1,"freshest_days":33,"oldest_days":33,"earliest_retail_deadline":null},{"model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Candy White / Deep Black Pearlescent","free_units":1,"freshest_days":1,"oldest_days":1,"earliest_retail_deadline":null},{"model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Lava Blue Metallic","free_units":1,"freshest_days":164,"oldest_days":164,"earliest_retail_deadline":"2026-03-31"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"1.5 DSG SPORT","transmission":"DSG","colour":"Wild Cherry Red Metallic / Deep Black Pearlescent","free_units":1,"freshest_days":76,"oldest_days":76,"earliest_retail_deadline":"2026-06-30"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE AT","transmission":"AT","colour":"Candy White","free_units":1,"freshest_days":76,"oldest_days":76,"earliest_retail_deadline":"2026-06-30"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE MT","transmission":"MT","colour":"Wild Cherry Red Metallic","free_units":1,"freshest_days":14,"oldest_days":14,"earliest_retail_deadline":null},{"model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE MT","transmission":"MT","colour":"Reflex Silver Metallic","free_units":1,"freshest_days":39,"oldest_days":39,"earliest_retail_deadline":"2026-07-31"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"GT LINE MT","transmission":"MT","colour":"Lava Blue Metallic","free_units":1,"freshest_days":140,"oldest_days":140,"earliest_retail_deadline":"2026-04-30"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"HL AT","transmission":"AT","colour":"Candy White","free_units":1,"freshest_days":73,"oldest_days":73,"earliest_retail_deadline":"2026-06-30"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"HL PLUS AT","transmission":"AT","colour":"Carbon Steel Gray Metallic","free_units":1,"freshest_days":220,"oldest_days":220,"earliest_retail_deadline":null},{"model":"VIRTUS","model_family":"VIRTUS","variant":"HL PLUS MT","transmission":"MT","colour":"Lava Blue Metallic","free_units":1,"freshest_days":158,"oldest_days":158,"earliest_retail_deadline":"2026-04-30"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"TOPLINE AT","transmission":"AT","colour":"Reflex Silver Metallic","free_units":1,"freshest_days":185,"oldest_days":185,"earliest_retail_deadline":"2026-07-31"},{"model":"VIRTUS","model_family":"VIRTUS","variant":"TOPLINE AT","transmission":"AT","colour":"Carbon Steel Gray Metallic","free_units":1,"freshest_days":116,"oldest_days":116,"earliest_retail_deadline":"2026-05-31"}]}</script>
+<script>
+const D = JSON.parse(document.getElementById("dsr-data").textContent);
+const $ = s => document.querySelector(s);
+const SVGNS = "http://www.w3.org/2000/svg";
+const mk = (t, a = {}) => {
+  const e = document.createElementNS(SVGNS, t);
+  for (const k in a) e.setAttribute(k, a[k]);
+  return e;
+};
+const n0 = v => v == null ? "–" : Math.round(Number(v)).toLocaleString("en-IN");
+const pc = v => v == null ? "–" : Number(v).toFixed(1) + "%";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const dmy = s => s ? new Date(s).toLocaleDateString("en-IN",
+  { day: "2-digit", month: "short", year: "numeric" }) : "–";
+// The dealership counts in lakh, not millions.
+const lakh = v => v == null ? "–"
+  : v >= 1e7 ? "₹" + (v / 1e7).toFixed(2) + " Cr"
+  : v >= 1e5 ? "₹" + (v / 1e5).toFixed(2) + " L"
+  : "₹" + Number(v).toLocaleString("en-IN");
+const sev = p => p == null ? "var(--muted)"
+  : p >= 95 ? "var(--good)" : p >= 75 ? "var(--warning)"
+  : p >= 50 ? "var(--serious)" : "var(--critical)";
+// Title case for display, but the trade's acronyms stay upper: "GOLF GTI" must
+// not become "Golf Gti", nor "TAIGUN (FL)" become "Taigun (fl)".
+const KEEP_UPPER = new Set(["GTI", "GT", "FL", "R-LINE", "AT", "MT", "DSG",
+                            "TSI", "MQ", "SVP", "EW", "DWA", "CRM", "IVRS",
+                            "IPOPI", "WS", "TD", "HL", "CL", "VW", "B2B", "B2C"]);
+const title = s => String(s ?? "").split(/\s+/).map(w => {
+  if (KEEP_UPPER.has(w.replace(/[()]/g, "").toUpperCase())) return w.toUpperCase();
+  return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+}).join(" ");
+// "TAYRON TAYRON" - for models with a single trim the variant repeats the model
+// name, so only append the variant when it says something new.
+const sameName = (model, variant) =>
+  !variant || variant.toUpperCase() === String(model || "").toUpperCase();
+const carName = (model, variant) =>
+  sameName(model, variant) ? title(model) : `${title(model)} ${variant}`;
+
+
+/* ---- masthead ---- */
+$("#strap").innerHTML = [
+  `Daily Sales Report &middot; <b>${dmy(D.period.period_start)} – ${dmy(D.period.period_end)}</b>`,
+  `<b>${n0(D.kpi.enquiries)}</b> enquiries`,
+  `<b>${n0(D.kpi.bookings)}</b> bookings`,
+  `<b>${n0(D.kpi.retails)}</b> retails`,
+  `<b>${lakh(D.kpi.booking_amount_collected)}</b> collected`,
+].join(`<span class="sep">/</span>`);
+$("#f-src").textContent = D.meta.source_file;
+
+/* ---- headline + against-target rows ---- */
+const rPct = D.kpi.retails / D.targets.retail_target * 100;
+$("#headline").innerHTML = `
+  <div class="label">Retails against a target of ${n0(D.targets.retail_target)}</div>
+  <div class="fig">${n0(D.kpi.retails)}<span class="of"> / ${n0(D.targets.retail_target)}</span></div>
+  <div class="verdict">${pc(rPct)} of target &middot;
+    ${n0(D.targets.retail_target - D.kpi.retails)} cars short</div>`;
+
+const against = [
+  { k: "Enquiries", v: D.kpi.enquiries, t: D.targets.leads_target },
+  { k: "Test drives", v: D.kpi.test_drives, t: D.targets.td_target },
+  { k: "Bookings", v: D.kpi.bookings, t: D.targets.booking_target },
+  { k: "Retails", v: D.kpi.retails, t: D.targets.retail_target },
+];
+const aMax = Math.max(...against.map(r => Math.max(r.v, r.t)));
+$("#against").innerHTML = against.map(r => {
+  const p = r.t ? r.v / r.t * 100 : null;
+  return `<div class="row">
+    <span class="k">${r.k}</span>
+    <span class="track">
+      <i style="width:${(r.v / aMax * 100).toFixed(1)}%;background:${sev(p)}"></i>
+      <u style="left:${(r.t / aMax * 100).toFixed(1)}%"></u>
+    </span>
+    <span class="v num"><b>${n0(r.v)}</b> <em>/ ${n0(r.t)} &middot; ${pc(p)}</em></span>
+  </div>`;
+}).join("");
+
+/* =================================================================
+   Charts. Horizontal bars throughout - every category is a named
+   thing, and the labels need room to be words rather than ticks.
+   ================================================================= */
+
+/** rows: [{label, value, target?, colour?}] */
+function hbars(rows, opt = {}) {
+  const lw = opt.labelW ?? 100, vw = 46, rh = 31, bh = 13;
+  const W = opt.width ?? 500, pw = W - lw - vw, H = rows.length * rh + 6;
+  const max = Math.max(1, ...rows.flatMap(r => [r.value || 0, r.target || 0]));
+  const svg = mk("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+                          "aria-label": opt.alt || "" });
+  for (let i = 0; i <= 4; i++) {
+    const x = lw + pw * i / 4;
+    svg.appendChild(mk("line", { x1: x, x2: x, y1: 0, y2: H - 6, class: "g" }));
+  }
+  svg.appendChild(mk("line", { x1: lw, x2: lw, y1: 0, y2: H - 6, class: "b" }));
+  rows.forEach((r, i) => {
+    const y = i * rh + (rh - bh) / 2;
+    const t = mk("text", { x: lw - 10, y: y + bh / 2 + 4, "text-anchor": "end" });
+    t.textContent = r.label;
+    svg.appendChild(t);
+    if (r.target) {
+      svg.appendChild(mk("rect", { x: lw, y, width: r.target / max * pw, height: bh,
+                                   rx: 4, fill: r.colour || "var(--s1)",
+                                   "fill-opacity": 0.16 }));
+    }
+    svg.appendChild(mk("rect", { x: lw, y, width: Math.max(0, (r.value || 0) / max * pw),
+                                 height: bh, rx: 4, fill: r.colour || "var(--s1)" }));
+    if (r.target) {
+      const tx = lw + r.target / max * pw;
+      svg.appendChild(mk("line", { x1: tx, x2: tx, y1: y - 3, y2: y + bh + 3, class: "t" }));
+    }
+    const v = mk("text", { x: W, y: y + bh / 2 + 4, "text-anchor": "end", class: "v" });
+    v.textContent = n0(r.value);
+    svg.appendChild(v);
+  });
+  return svg;
+}
+
+/** cats: [{label, values, targets?}]  series: [{name, colour}] */
+function grouped(cats, series, opt = {}) {
+  const lw = opt.labelW ?? 92, bh = 10, gap = 2;
+  const gh = series.length * (bh + gap) + 15;
+  const W = opt.width ?? 500, pw = W - lw - 40, H = cats.length * gh + 6;
+  const max = Math.max(1, ...cats.flatMap(c =>
+    [...c.values, ...(c.targets || [])].map(v => v || 0)));
+  const svg = mk("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+                          "aria-label": opt.alt || "" });
+  for (let i = 0; i <= 4; i++) {
+    const x = lw + pw * i / 4;
+    svg.appendChild(mk("line", { x1: x, x2: x, y1: 0, y2: H - 6, class: "g" }));
+  }
+  svg.appendChild(mk("line", { x1: lw, x2: lw, y1: 0, y2: H - 6, class: "b" }));
+  cats.forEach((c, ci) => {
+    const top = ci * gh + 7;
+    const t = mk("text", { x: lw - 10, y: top + (gh - 15) / 2 + 4, "text-anchor": "end" });
+    t.textContent = c.label;
+    svg.appendChild(t);
+    series.forEach((s, si) => {
+      const y = top + si * (bh + gap);
+      const w = Math.max(0, (c.values[si] || 0) / max * pw);
+      svg.appendChild(mk("rect", { x: lw, y, width: w, height: bh, rx: 4, fill: s.colour }));
+      if (c.values[si] != null) {
+        const v = mk("text", { x: lw + w + 6, y: y + bh - 1, class: "m" });
+        v.textContent = n0(c.values[si]);
+        svg.appendChild(v);
+      }
+    });
+  });
+  return svg;
+}
+
+/** Stacked, for an ordered ramp (ageing buckets). 2px surface gap per segment. */
+function stacked(cats, segs, opt = {}) {
+  const lw = opt.labelW ?? 92, rh = 30, bh = 14;
+  const W = opt.width ?? 500, pw = W - lw - 40, H = cats.length * rh + 6;
+  const max = Math.max(1, ...cats.map(c => c.values.reduce((a, b) => a + (b || 0), 0)));
+  const svg = mk("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+                          "aria-label": opt.alt || "" });
+  for (let i = 0; i <= 4; i++) {
+    const x = lw + pw * i / 4;
+    svg.appendChild(mk("line", { x1: x, x2: x, y1: 0, y2: H - 6, class: "g" }));
+  }
+  svg.appendChild(mk("line", { x1: lw, x2: lw, y1: 0, y2: H - 6, class: "b" }));
+  cats.forEach((c, ci) => {
+    const y = ci * rh + (rh - bh) / 2;
+    const t = mk("text", { x: lw - 10, y: y + bh / 2 + 4, "text-anchor": "end" });
+    t.textContent = c.label;
+    svg.appendChild(t);
+    let x = lw;
+    const total = c.values.reduce((a, b) => a + (b || 0), 0);
+    c.values.forEach((v, si) => {
+      if (!v) return;
+      const w = v / max * pw;
+      svg.appendChild(mk("rect", { x, y, width: Math.max(0, w - 2), height: bh,
+                                   rx: 3, fill: segs[si].colour }));
+      x += w;
+    });
+    const tv = mk("text", { x: W, y: y + bh / 2 + 4, "text-anchor": "end", class: "v" });
+    tv.textContent = n0(total);
+    svg.appendChild(tv);
+  });
+  return svg;
+}
+const key = items => items.map(i =>
+  `<span><i style="background:${i.colour}"></i>${esc(i.name)}</span>`).join("");
+
+/* ---- funnel + sources ---- */
+const ramp = ["var(--o5)", "var(--o4)", "var(--o3)", "var(--o2)", "var(--o1)"];
+$("#c-funnel").appendChild(hbars([
+  { label: "Enquiries", value: D.kpi.enquiries, target: D.targets.leads_target, colour: ramp[0] },
+  { label: "Qualified", value: D.kpi.qualified, colour: ramp[1] },
+  { label: "Test drives", value: D.kpi.test_drives, target: D.targets.td_target, colour: ramp[2] },
+  { label: "Bookings", value: D.kpi.bookings, target: D.targets.booking_target, colour: ramp[3] },
+  { label: "Retails", value: D.kpi.retails, target: D.targets.retail_target, colour: ramp[4] },
+], { alt: "Sales funnel from enquiries to retails, each against target" }));
+
+$("#c-src").appendChild(hbars(D.sources.map(s => ({
+  label: title(s.source), value: s.leads,
+})), { labelW: 132, alt: "Enquiries by channel" }));
+
+/* ---- consultant scorecard ---- */
+const bMax = Math.max(...D.board.map(r => Math.max(r.booking_achieved, r.booking_target)));
+$("#t-board").innerHTML = `
+  <caption>Bar shows bookings achieved; the tick is the booking target.</caption>
+  <thead><tr>
+    <th>Consultant</th><th>Team</th><th>Channel</th>
+    <th class="r">Enquiries</th><th class="r">TDs</th>
+    <th>Bookings vs target</th><th class="r">Bkg</th><th class="r">Target</th>
+    <th class="r">Retails</th><th class="r">Rtl target</th><th class="r">Conv</th>
+  </tr></thead>
+  <tbody>${D.board.map(r => {
+    const p = r.booking_target ? r.booking_achieved / r.booking_target * 100 : null;
+    return `<tr>
+      <td><b>${esc(r.consultant)}</b></td>
+      <td>${esc(title(r.team || "–"))}</td>
+      <td>${esc(title(r.primary_channel || "–"))}</td>
+      <td class="r num">${n0(r.total_leads)}</td>
+      <td class="r num">${n0(r.td_achieved)}</td>
+      <td><span class="bul">
+        <i style="width:${(r.booking_achieved / bMax * 96).toFixed(0)}px;background:${sev(p)}"></i>
+        <u style="left:${(r.booking_target / bMax * 96).toFixed(0)}px"></u></span></td>
+      <td class="r num">${n0(r.booking_achieved)}</td>
+      <td class="r num">${n0(r.booking_target)}</td>
+      <td class="r num">${n0(r.retail_achieved)}</td>
+      <td class="r num">${n0(r.retail_target)}</td>
+      <td class="r num">${pc(r.booking_conv_pct)}</td>
+    </tr>`;
+  }).join("")}</tbody>
+  <tfoot><tr><td colspan="11">
+    ${D.teams.map(t => `${esc(t.consultant.replace(/\s*[-–]\s*/g, " – "))}:
+      ${n0(t.booking_achieved)} of ${n0(t.booking_target)} bookings,
+      ${n0(t.retail_achieved)} of ${n0(t.retail_target)} retails`).join(" &nbsp;&middot;&nbsp; ")}
+  </td></tr></tfoot>`;
+
+/* ---- stock ageing ---- */
+const buckets = ["0-30", "31-60", "61-90", "91-180", "180+"];
+const segs = buckets.map((b, i) => ({ name: b + " d", colour: ramp[4 - i] }));
+$("#k-age").innerHTML = key(segs);
+const byModel = {};
+D.ageing.forEach(a => { (byModel[a.model] ||= {})[a.ageing_bucket] = a.units; });
+const ageCats = Object.entries(byModel)
+  .map(([m, b]) => ({ label: title(m), values: buckets.map(k => b[k] || 0) }))
+  .sort((a, b) => b.values.reduce((x, y) => x + y, 0) - a.values.reduce((x, y) => x + y, 0));
+$("#c-age").appendChild(stacked(ageCats, segs, { alt: "Stock ageing by model" }));
+
+/* ---- model position ---- */
+const mSeries = [
+  { name: "Free stock", colour: "var(--s1)" },
+  { name: "Bookings", colour: "var(--s2)" },
+  { name: "Back orders", colour: "var(--s3)" },
+];
+$("#k-model").innerHTML = key(mSeries);
+$("#c-model").appendChild(grouped(D.models.map(m => ({
+  label: title(m.model),
+  values: [m.free_stock, m.bookings_this_period, m.backorders_this_period],
+})), mSeries, { alt: "Free stock, bookings and back orders per model family" }));
+
+/* ---- free stock detail ---- */
+$("#t-avail").innerHTML = `
+  <thead><tr><th>Model</th><th>Variant</th><th>Colour</th>
+    <th class="r">Free</th><th class="r">Newest</th><th class="r">Oldest</th>
+    <th>Retail by</th></tr></thead>
+  <tbody>${D.avail.map(a => `<tr>
+    <td>${esc(title(a.model))}</td>
+    <td>${sameName(a.model, a.variant) ? "–" : esc(a.variant)}</td>
+    <td>${esc(a.colour)}</td>
+    <td class="r num">${n0(a.free_units)}</td>
+    <td class="r num">${n0(a.freshest_days)} d</td>
+    <td class="r num">${n0(a.oldest_days)} d</td>
+    <td>${dmy(a.earliest_retail_deadline)}</td>
+  </tr>`).join("")}</tbody>
+  <tfoot><tr><td colspan="7">${D.avail.length} model / variant / colour
+    combinations free on the floor, ${n0(D.kpi.free_stock)} cars in
+    total.</td></tr></tfoot>`;
+
+/* ---- chase list ---- */
+const oldest = D.backorders[0];
+const queues = [
+  {
+    title: "Stock past its NADCON retail deadline",
+    chip: "Volkswagen asks first",
+    colour: "var(--critical)",
+    count: D.deadline.length, unit: "cars",
+    body: `Free units whose Volkswagen retail date has already gone by. The oldest
+           has been standing ${n0(D.deadline[0].stock_aging_days)} days, against a
+           deadline of ${dmy(D.deadline[0].nadcon_retail_date)}.`,
+    open: "Show the cars",
+    table: `<thead><tr><th>Chassis</th><th>Model</th><th>Variant</th>
+              <th>Colour</th><th class="r">Standing</th><th>Retail by</th></tr></thead>
+            <tbody>${D.deadline.map(s => `<tr>
+              <td class="mono">${esc(s.chassis_number)}</td>
+              <td>${esc(title(s.model))}</td><td>${sameName(s.model, s.variant) ? "–" : esc(s.variant)}</td>
+              <td>${esc(s.colour)}</td>
+              <td class="r num">${n0(s.stock_aging_days)} d</td>
+              <td>${dmy(s.nadcon_retail_date)}</td></tr>`).join("")}</tbody>`,
+  },
+  {
+    title: "Orders with no car against them",
+    chip: "Customers waiting",
+    colour: "var(--serious)",
+    count: D.backorders.length, unit: "orders",
+    body: `Bookings marked no-stock across the whole open order book, of which
+           ${n0(D.kpi.backorders)} were taken in August. The longest wait is
+           ${esc(title(oldest.customer_name))} at ${n0(oldest.days_waiting)} days
+           for a ${esc(carName(oldest.model, oldest.variant))}.`,
+    open: "Show the orders",
+    table: `<thead><tr><th>Customer</th><th>Model</th><th>Variant</th>
+              <th>Colour</th><th>Consultant</th><th class="r">Waiting</th>
+              <th>Fillable now</th></tr></thead>
+            <tbody>${D.backorders.map(b => `<tr>
+              <td>${esc(title(b.customer_name))}</td>
+              <td>${esc(title(b.model))}</td><td>${sameName(b.model, b.variant) ? "–" : esc(b.variant)}</td>
+              <td>${esc(b.colour || "–")}</td>
+              <td>${esc(b.consultant || "–")}</td>
+              <td class="r num">${n0(b.days_waiting)} d</td>
+              <td>${b.matching_free_units > 0
+                    ? `<span class="chip"><i style="background:var(--good)"></i>${b.matching_free_units} in stock</span>`
+                    : `<span class="chip"><i style="background:var(--muted)"></i>no match</span>`}</td>
+              </tr>`).join("")}</tbody>`,
+  },
+  {
+    title: "Bookings never punched into the CRM",
+    chip: "Invisible to VW",
+    colour: "var(--warning)",
+    count: D.nocrm.length, unit: "bookings",
+    body: `Sold in August with the CRM entry column still reading no. Until someone
+           enters them, these cars do not exist in Volkswagen&rsquo;s reporting, and
+           the dealership is not credited for them.`,
+    open: "Show the bookings",
+    table: `<thead><tr><th>Customer</th><th>Model</th><th>Variant</th>
+              <th>Consultant</th><th>Booked</th></tr></thead>
+            <tbody>${D.nocrm.map(b => `<tr>
+              <td>${esc(title(b.customer_name))}</td>
+              <td>${esc(title(b.model))}</td><td>${sameName(b.model, b.variant) ? "–" : esc(b.variant)}</td>
+              <td>${esc(b.consultant || "–")}</td>
+              <td>${dmy(b.booking_date)}</td></tr>`).join("")}</tbody>`,
+  },
+];
+$("#chase").innerHTML = queues.map(q => `
+  <article>
+    <div class="stripe" style="background:${q.colour}"></div>
+    <div class="body">
+      <h3>${esc(q.title)}</h3>
+      <p>${q.body}</p>
+      <div class="detail"><details><summary>${esc(q.open)}</summary>
+        <div class="scroll"><table>${q.table}</table></div>
+      </details></div>
+    </div>
+    <div class="side">
+      <div class="count num">${n0(q.count)}</div>
+      <div class="unit">${esc(q.unit)}</div>
+      <div style="margin-top:8px"><span class="chip">
+        <i style="background:${q.colour}"></i>${esc(q.chip)}</span></div>
+    </div>
+  </article>`).join("");
+
+/* ---- data quality ---- */
+const sevDot = { high: "var(--critical)", medium: "var(--warning)", low: "var(--muted)" };
+$("#dq").innerHTML = D.dq.map(d => `
+  <div>
+    <div class="issue">${esc(d.issue)}</div>
+    <div><span class="chip"><i style="background:${sevDot[d.severity]}"></i>
+      ${esc(d.severity)} &middot; ${esc(d.affected_rows)} rows</span></div>
+    <p class="detail-t">${esc(d.detail)}</p>
+  </div>`).join("");
+</script>

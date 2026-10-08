@@ -1,0 +1,20 @@
+openpyxl>=3.1
+psycopg[binary]>=3.2
+psycopg_pool>=3.2
+fastapi>=0.115
+uvicorn[standard]>=0.30
+# Both of these were imported but never declared. They happened to be present
+# on the dev machine, so nothing failed locally - on a clean install (any
+# deploy) the app died at startup instead:
+#   db.py and run.py do `from dotenv import load_dotenv`
+#   entry.py takes UploadFile/Form, which FastAPI refuses to serve without
+#   python-multipart
+python-dotenv>=1.0
+python-multipart>=0.0.9
+# Same story again: httpx ships with the FastAPI test client so it is present
+# on this machine, but app/calls.py imports it at runtime to reach the Perfox
+# API - undeclared, a clean install would die on the first call.
+httpx>=0.27
+google-api-python-client>=2.0.0
+google-auth-httplib2>=0.1.0
+google-auth-oauthlib>=1.0.0

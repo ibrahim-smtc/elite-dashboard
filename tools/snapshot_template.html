@@ -1,0 +1,702 @@
+<title>Elite Motors August DSR</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ===================================================================
+   Tokens. Complete light palette on bare :root; dark redefines only
+   tokens, under both the OS query and the explicit theme stamp.
+   Neutrals are biased cool/slate rather than pure grey - the page sits
+   next to VW's own graphite-and-blue identity.
+   =================================================================== */
+:root {
+  color-scheme: light;
+  --page:      #eef1f5;
+  --surface:   #fbfcfd;
+  --sunken:    #e6ebf1;
+  --ink:       #0e1216;
+  --ink-2:     #48535e;
+  --muted:     #7c8792;
+  --rule:      #d6dde5;
+  --rule-soft: #e4e9ef;
+  --accent:    #1c5cab;
+
+  /* chart marks - the validated categorical trio and blue ordinal ramp */
+  --s1: #2a78d6;  --s2: #eb6834;  --s3: #1baf7a;
+  --o1: #86b6ef;  --o2: #5598e7;  --o3: #2a78d6;  --o4: #1c5cab;  --o5: #104281;
+
+  --good: #0ca30c;  --warning: #fab219;  --serious: #ec835a;  --critical: #d03b3b;
+  --good-ink: #006300;  --crit-ink: #a82a2a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page:      #101316;
+    --surface:   #191d21;
+    --sunken:    #14181c;
+    --ink:       #f2f4f6;
+    --ink-2:     #a9b3be;
+    --muted:     #7c8792;
+    --rule:      #2a3038;
+    --rule-soft: #23282e;
+    --accent:    #5598e7;
+    --s1: #3987e5;  --s2: #d95926;  --s3: #199e70;
+    --o1: #184f95;  --o2: #256abf;  --o3: #3987e5;  --o4: #6da7ec;  --o5: #9ec5f4;
+    --good-ink: #0ca30c;  --crit-ink: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page:      #101316;
+  --surface:   #191d21;
+  --sunken:    #14181c;
+  --ink:       #f2f4f6;
+  --ink-2:     #a9b3be;
+  --muted:     #7c8792;
+  --rule:      #2a3038;
+  --rule-soft: #23282e;
+  --accent:    #5598e7;
+  --s1: #3987e5;  --s2: #d95926;  --s3: #199e70;
+  --o1: #184f95;  --o2: #256abf;  --o3: #3987e5;  --o4: #6da7ec;  --o5: #9ec5f4;
+  --good-ink: #0ca30c;  --crit-ink: #e66767;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 400 15px/1.6 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.sheet { max-width: 1080px; margin: 0 auto; padding: 44px 26px 80px; }
+
+h1, h2, h3, .fig, .eyebrow {
+  font-family: Archivo, "Archivo Narrow", system-ui, sans-serif;
+}
+.mono, td.mono, .chassis {
+  font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---- masthead: a report header, not a hero ---- */
+.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 16px; }
+.marque { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: baseline;
+          justify-content: space-between; }
+h1 { font-size: clamp(26px, 4.4vw, 38px); font-weight: 700; letter-spacing: -0.025em;
+     margin: 0; line-height: 1.05; text-wrap: balance; }
+.marque .where { color: var(--ink-2); font-size: 13.5px; }
+.strap { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 13px;
+         color: var(--ink-2); font-size: 13px; }
+.strap b { color: var(--ink); font-weight: 500; }
+.strap .sep { color: var(--rule); }
+
+/* ---- section furniture ---- */
+section { margin-top: 46px; }
+.eyebrow {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+h2 { font-size: 21px; font-weight: 600; letter-spacing: -0.015em; margin: 0 0 6px; }
+.lede { color: var(--ink-2); font-size: 14.5px; margin: 0 0 22px; max-width: 66ch; }
+
+/* ---- the month against target ---- */
+.outcome {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 4px; padding: 24px 26px;
+  display: grid; gap: 30px;
+  grid-template-columns: minmax(min(210px, 100%), 0.9fr) 1fr;
+  align-items: center;
+}
+@media (max-width: 720px) { .outcome { grid-template-columns: 1fr; } }
+.headline .label { color: var(--ink-2); font-size: 13px; letter-spacing: 0.01em; }
+.headline .fig {
+  font-size: 76px; font-weight: 700; line-height: 0.94; letter-spacing: -0.04em;
+  margin: 6px 0 2px;
+}
+.headline .of { font-family: "IBM Plex Sans", sans-serif; font-size: 15px;
+                font-weight: 400; color: var(--muted); letter-spacing: 0; }
+.headline .verdict { font-size: 13.5px; color: var(--crit-ink); font-weight: 500; }
+
+.against { display: grid; gap: 17px; }
+.against .row { display: grid; grid-template-columns: 96px 1fr 124px; gap: 13px;
+                align-items: center; font-size: 13.5px; }
+.against .row .k { color: var(--ink-2); }
+.against .row .v { color: var(--ink); text-align: right; font-size: 13px; }
+.against .row .v em { color: var(--muted); font-style: normal; }
+.track { position: relative; height: 9px; background: var(--sunken);
+         border-radius: 4px; overflow: hidden; }
+.track > i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+.track > u { position: absolute; top: -3px; bottom: -3px; width: 2px;
+             background: var(--ink); border-radius: 1px; }
+
+/* ---- charts ---- */
+/* min(400px, 100%) not 400px: a bare minmax minimum cannot shrink, so a narrow
+   window would scroll sideways instead of the columns stacking. */
+.pair { display: grid; gap: 30px;
+        grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr)); }
+figure { margin: 0; }
+figcaption { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--ink-2); font: 11.5px "IBM Plex Sans", sans-serif; }
+svg text.v { fill: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+svg text.m { fill: var(--muted); font-variant-numeric: tabular-nums; }
+svg .g { stroke: var(--rule-soft); stroke-width: 1; }
+svg .b { stroke: var(--rule); stroke-width: 1; }
+svg .t { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+
+.key { display: flex; flex-wrap: wrap; gap: 7px 16px; margin-bottom: 14px;
+       color: var(--ink-2); font-size: 12.5px; }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+.key i { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+/* ---- tables ---- */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+caption { text-align: left; color: var(--muted); font-size: 12.5px;
+          padding-bottom: 9px; }
+th, td { padding: 8px 12px 8px 0; text-align: left; white-space: nowrap;
+         border-bottom: 1px solid var(--rule-soft); }
+thead th { color: var(--muted); font-weight: 600; font-size: 11px;
+           letter-spacing: 0.09em; text-transform: uppercase;
+           border-bottom: 1px solid var(--rule); }
+/* Right-aligned columns keep the base 12px right padding so a narrow numeric
+   header (TDs) cannot touch the header beside it, and gain left padding so the
+   number does not crowd the column before it. */
+td.r, th.r { text-align: right; padding-left: 20px; }
+tr > :last-child { padding-right: 0; }
+tbody tr:last-child td { border-bottom: none; }
+tfoot td { color: var(--muted); font-size: 12.5px; padding-top: 10px;
+           border-bottom: none; }
+td .bul { display: block; position: relative; height: 8px; width: 96px;
+          background: var(--sunken); border-radius: 4px; }
+td .bul > i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+td .bul > u { position: absolute; top: -3px; bottom: -3px; width: 2px;
+              background: var(--ink); }
+
+/* ---- chase list: severity in form, not only colour ---- */
+.chase { display: grid; gap: 3px; }
+.chase > article {
+  display: grid; grid-template-columns: 3px 1fr auto; gap: 0 15px;
+  align-items: start; background: var(--surface);
+  border: 1px solid var(--rule); border-left: none; padding: 0;
+}
+.chase .stripe { background: var(--critical); }
+.chase .body { padding: 15px 0 16px; }
+.chase .side { padding: 15px 18px 16px 0; text-align: right; }
+.chase h3 { font-size: 15px; font-weight: 600; margin: 0 0 3px; letter-spacing: -0.01em; }
+.chase p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: 62ch; }
+.chase .count { font-family: Archivo, sans-serif; font-size: 27px; font-weight: 700;
+                letter-spacing: -0.03em; line-height: 1; }
+.chase .unit { color: var(--muted); font-size: 11.5px; letter-spacing: 0.04em;
+               text-transform: uppercase; }
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px;
+        font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
+        color: var(--ink-2); border: 1px solid var(--rule); border-radius: 3px;
+        padding: 1px 7px; }
+.chip i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.detail { margin-top: 14px; }
+.detail summary { cursor: pointer; color: var(--accent); font-size: 13px;
+                  font-weight: 500; padding: 3px 0; }
+.detail summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.detail[open] summary { margin-bottom: 10px; }
+
+/* ---- data quality ---- */
+.dq { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+      border-radius: 4px; overflow: hidden; }
+.dq > div { background: var(--surface); padding: 14px 17px;
+            display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; }
+.dq .issue { font-weight: 500; font-size: 14px; }
+.dq .detail-t { color: var(--ink-2); font-size: 13px; grid-column: 1 / -1;
+                margin: 0; max-width: 74ch; }
+
+footer { margin-top: 54px; padding-top: 20px; border-top: 1px solid var(--rule);
+         color: var(--muted); font-size: 12.5px; }
+footer p { margin: 0 0 7px; max-width: 78ch; }
+code { font-family: "IBM Plex Mono", monospace; font-size: 0.92em;
+       background: var(--sunken); padding: 1px 5px; border-radius: 3px; }
+</style>
+
+<div class="sheet">
+  <header class="masthead">
+    <div class="marque">
+      <h1>Volkswagen Elite Motors</h1>
+      <div class="where">Authorised dealership &middot; Hosur Road, Bengaluru</div>
+    </div>
+    <div class="strap" id="strap"></div>
+  </header>
+
+  <section>
+    <div class="eyebrow">Where the month landed</div>
+    <h2>August 2026 against target</h2>
+    <p class="lede">
+      Retails are the number Volkswagen scores the dealership on. Bookings and
+      enquiries are the two upstream stages that produce them.
+    </p>
+    <div class="outcome">
+      <div class="headline" id="headline"></div>
+      <div class="against" id="against"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Pipeline</div>
+    <h2>From enquiry to retail</h2>
+    <p class="lede">
+      Each stage against its target. The month converted 11.4% of enquiries into
+      bookings, then 42.9% of those bookings into retails &mdash; the drop from
+      booking to retail is where the shortfall sits.
+    </p>
+    <div class="pair">
+      <figure>
+        <div id="c-funnel"></div>
+        <figcaption>Tick marks the month&rsquo;s target. Test-drive count is taken
+          from the consultant scorecards, not the workbook&rsquo;s test-drive tab,
+          which was never refreshed.</figcaption>
+      </figure>
+      <figure>
+        <div id="c-src"></div>
+        <figcaption>Enquiries by channel. Central Webin arrives through the CRM
+          queue &mdash; the largest source, and the one that booked nothing.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">People</div>
+    <h2>Consultant scorecard</h2>
+    <p class="lede">
+      Nine consultants across two teams. Targets sit on each consultant&rsquo;s
+      primary-channel row; achievement is summed across both their rows. Ordered by
+      the gap to booking target.
+    </p>
+    <div class="scroll"><table id="t-board"></table></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Inventory</div>
+    <h2>What is on the floor</h2>
+    <p class="lede">
+      69 cars free, 20 allotted. Ageing runs from billing date, and 20 units have
+      been standing more than 90 days &mdash; each one carrying interest.
+    </p>
+    <div class="pair">
+      <figure>
+        <div class="key" id="k-age"></div>
+        <div id="c-age"></div>
+        <figcaption>Free and allotted units by days since Volkswagen billed
+          them.</figcaption>
+      </figure>
+      <figure>
+        <div class="key" id="k-model"></div>
+        <div id="c-model"></div>
+        <figcaption>Supply against demand per model family. The Taigun facelift is
+          ordered as its own model but booked as plain &ldquo;Taigun&rdquo;, so both
+          are rolled together here.</figcaption>
+      </figure>
+    </div>
+    <div class="detail"><details>
+      <summary>Free stock by variant and colour</summary>
+      <div class="scroll"><table id="t-avail"></table></div>
+    </details></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Action</div>
+    <h2>What needs chasing</h2>
+    <p class="lede">
+      Three queues came out of the load, in the order Volkswagen asks about them.
+    </p>
+    <div class="chase" id="chase"></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Caveats</div>
+    <h2>Where the workbook disagrees with itself</h2>
+    <p class="lede">
+      The DSR is maintained by hand and its tabs are refreshed at different times,
+      so some of them do not match the rows they summarise. Each disagreement is
+      recorded rather than quietly resolved.
+    </p>
+    <div class="dq" id="dq"></div>
+  </section>
+
+  <footer>
+    <p><b>Source</b> &mdash; <span id="f-src" class="mono"></span>, loaded into
+      PostgreSQL 17 as the <code>dsr</code> schema: six fact tables (vehicle, lead,
+      test drive, booking, allotment, registration), six reference tables and four
+      target tables, with twenty views over them.</p>
+    <p><b>This page is a frozen snapshot</b>, safe to send on: the figures were read
+      once, at the time above, and baked into the file. The database behind it is
+      live &mdash; the dashboard at <code>/</code> takes records as they are entered
+      and repaints itself the moment anything changes, and the
+      <code>/agent/*</code> endpoints expose the same views to the
+      dealership&rsquo;s service and client agents. Re-run
+      <code>tools/build_snapshot.py</code> for a fresh one.</p>
+  </footer>
+</div>
+
+<script id="dsr-data" type="application/json">/*__DATA__*/</script>
+<script>
+const D = JSON.parse(document.getElementById("dsr-data").textContent);
+const $ = s => document.querySelector(s);
+const SVGNS = "http://www.w3.org/2000/svg";
+const mk = (t, a = {}) => {
+  const e = document.createElementNS(SVGNS, t);
+  for (const k in a) e.setAttribute(k, a[k]);
+  return e;
+};
+const n0 = v => v == null ? "–" : Math.round(Number(v)).toLocaleString("en-IN");
+const pc = v => v == null ? "–" : Number(v).toFixed(1) + "%";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const dmy = s => s ? new Date(s).toLocaleDateString("en-IN",
+  { day: "2-digit", month: "short", year: "numeric" }) : "–";
+// The dealership counts in lakh, not millions.
+const lakh = v => v == null ? "–"
+  : v >= 1e7 ? "₹" + (v / 1e7).toFixed(2) + " Cr"
+  : v >= 1e5 ? "₹" + (v / 1e5).toFixed(2) + " L"
+  : "₹" + Number(v).toLocaleString("en-IN");
+const sev = p => p == null ? "var(--muted)"
+  : p >= 95 ? "var(--good)" : p >= 75 ? "var(--warning)"
+  : p >= 50 ? "var(--serious)" : "var(--critical)";
+// Title case for display, but the trade's acronyms stay upper: "GOLF GTI" must
+// not become "Golf Gti", nor "TAIGUN (FL)" become "Taigun (fl)".
+const KEEP_UPPER = new Set(["GTI", "GT", "FL", "R-LINE", "AT", "MT", "DSG",
+                            "TSI", "MQ", "SVP", "EW", "DWA", "CRM", "IVRS",
+                            "IPOPI", "WS", "TD", "HL", "CL", "VW", "B2B", "B2C"]);
+const title = s => String(s ?? "").split(/\s+/).map(w => {
+  if (KEEP_UPPER.has(w.replace(/[()]/g, "").toUpperCase())) return w.toUpperCase();
+  return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+}).join(" ");
+// "TAYRON TAYRON" - for models with a single trim the variant repeats the model
+// name, so only append the variant when it says something new.
+const sameName = (model, variant) =>
+  !variant || variant.toUpperCase() === String(model || "").toUpperCase();
+const carName = (model, variant) =>
+  sameName(model, variant) ? title(model) : `${title(model)} ${variant}`;
+
+
+/* ---- masthead ---- */
+$("#strap").innerHTML = [
+  `Daily Sales Report &middot; <b>${dmy(D.period.period_start)} – ${dmy(D.period.period_end)}</b>`,
+  `<b>${n0(D.kpi.enquiries)}</b> enquiries`,
+  `<b>${n0(D.kpi.bookings)}</b> bookings`,
+  `<b>${n0(D.kpi.retails)}</b> retails`,
+  `<b>${lakh(D.kpi.booking_amount_collected)}</b> collected`,
+].join(`<span class="sep">/</span>`);
+$("#f-src").textContent = D.meta.source_file;
+
+/* ---- headline + against-target rows ---- */
+const rPct = D.kpi.retails / D.targets.retail_target * 100;
+$("#headline").innerHTML = `
+  <div class="label">Retails against a target of ${n0(D.targets.retail_target)}</div>
+  <div class="fig">${n0(D.kpi.retails)}<span class="of"> / ${n0(D.targets.retail_target)}</span></div>
+  <div class="verdict">${pc(rPct)} of target &middot;
+    ${n0(D.targets.retail_target - D.kpi.retails)} cars short</div>`;
+
+const against = [
+  { k: "Enquiries", v: D.kpi.enquiries, t: D.targets.leads_target },
+  { k: "Test drives", v: D.kpi.test_drives, t: D.targets.td_target },
+  { k: "Bookings", v: D.kpi.bookings, t: D.targets.booking_target },
+  { k: "Retails", v: D.kpi.retails, t: D.targets.retail_target },
+];
+const aMax = Math.max(...against.map(r => Math.max(r.v, r.t)));
+$("#against").innerHTML = against.map(r => {
+  const p = r.t ? r.v / r.t * 100 : null;
+  return `<div class="row">
+    <span class="k">${r.k}</span>
+    <span class="track">
+      <i style="width:${(r.v / aMax * 100).toFixed(1)}%;background:${sev(p)}"></i>
+      <u style="left:${(r.t / aMax * 100).toFixed(1)}%"></u>
+    </span>
+    <span class="v num"><b>${n0(r.v)}</b> <em>/ ${n0(r.t)} &middot; ${pc(p)}</em></span>
+  </div>`;
+}).join("");
+
+/* =================================================================
+   Charts. Horizontal bars throughout - every category is a named
+   thing, and the labels need room to be words rather than ticks.
+   ================================================================= */
+
+/** rows: [{label, value, target?, colour?}] */
+function hbars(rows, opt = {}) {
+  const lw = opt.labelW ?? 100, vw = 46, rh = 31, bh = 13;
+  const W = opt.width ?? 500, pw = W - lw - vw, H = rows.length * rh + 6;
+  const max = Math.max(1, ...rows.flatMap(r => [r.value || 0, r.target || 0]));
+  const svg = mk("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+                          "aria-label": opt.alt || "" });
+  for (let i = 0; i <= 4; i++) {
+    const x = lw + pw * i / 4;
+    svg.appendChild(mk("line", { x1: x, x2: x, y1: 0, y2: H - 6, class: "g" }));
+  }
+  svg.appendChild(mk("line", { x1: lw, x2: lw, y1: 0, y2: H - 6, class: "b" }));
+  rows.forEach((r, i) => {
+    const y = i * rh + (rh - bh) / 2;
+    const t = mk("text", { x: lw - 10, y: y + bh / 2 + 4, "text-anchor": "end" });
+    t.textContent = r.label;
+    svg.appendChild(t);
+    if (r.target) {
+      svg.appendChild(mk("rect", { x: lw, y, width: r.target / max * pw, height: bh,
+                                   rx: 4, fill: r.colour || "var(--s1)",
+                                   "fill-opacity": 0.16 }));
+    }
+    svg.appendChild(mk("rect", { x: lw, y, width: Math.max(0, (r.value || 0) / max * pw),
+                                 height: bh, rx: 4, fill: r.colour || "var(--s1)" }));
+    if (r.target) {
+      const tx = lw + r.target / max * pw;
+      svg.appendChild(mk("line", { x1: tx, x2: tx, y1: y - 3, y2: y + bh + 3, class: "t" }));
+    }
+    const v = mk("text", { x: W, y: y + bh / 2 + 4, "text-anchor": "end", class: "v" });
+    v.textContent = n0(r.value);
+    svg.appendChild(v);
+  });
+  return svg;
+}
+
+/** cats: [{label, values, targets?}]  series: [{name, colour}] */
+function grouped(cats, series, opt = {}) {
+  const lw = opt.labelW ?? 92, bh = 10, gap = 2;
+  const gh = series.length * (bh + gap) + 15;
+  const W = opt.width ?? 500, pw = W - lw - 40, H = cats.length * gh + 6;
+  const max = Math.max(1, ...cats.flatMap(c =>
+    [...c.values, ...(c.targets || [])].map(v => v || 0)));
+  const svg = mk("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+                          "aria-label": opt.alt || "" });
+  for (let i = 0; i <= 4; i++) {
+    const x = lw + pw * i / 4;
+    svg.appendChild(mk("line", { x1: x, x2: x, y1: 0, y2: H - 6, class: "g" }));
+  }
+  svg.appendChild(mk("line", { x1: lw, x2: lw, y1: 0, y2: H - 6, class: "b" }));
+  cats.forEach((c, ci) => {
+    const top = ci * gh + 7;
+    const t = mk("text", { x: lw - 10, y: top + (gh - 15) / 2 + 4, "text-anchor": "end" });
+    t.textContent = c.label;
+    svg.appendChild(t);
+    series.forEach((s, si) => {
+      const y = top + si * (bh + gap);
+      const w = Math.max(0, (c.values[si] || 0) / max * pw);
+      svg.appendChild(mk("rect", { x: lw, y, width: w, height: bh, rx: 4, fill: s.colour }));
+      if (c.values[si] != null) {
+        const v = mk("text", { x: lw + w + 6, y: y + bh - 1, class: "m" });
+        v.textContent = n0(c.values[si]);
+        svg.appendChild(v);
+      }
+    });
+  });
+  return svg;
+}
+
+/** Stacked, for an ordered ramp (ageing buckets). 2px surface gap per segment. */
+function stacked(cats, segs, opt = {}) {
+  const lw = opt.labelW ?? 92, rh = 30, bh = 14;
+  const W = opt.width ?? 500, pw = W - lw - 40, H = cats.length * rh + 6;
+  const max = Math.max(1, ...cats.map(c => c.values.reduce((a, b) => a + (b || 0), 0)));
+  const svg = mk("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
+                          "aria-label": opt.alt || "" });
+  for (let i = 0; i <= 4; i++) {
+    const x = lw + pw * i / 4;
+    svg.appendChild(mk("line", { x1: x, x2: x, y1: 0, y2: H - 6, class: "g" }));
+  }
+  svg.appendChild(mk("line", { x1: lw, x2: lw, y1: 0, y2: H - 6, class: "b" }));
+  cats.forEach((c, ci) => {
+    const y = ci * rh + (rh - bh) / 2;
+    const t = mk("text", { x: lw - 10, y: y + bh / 2 + 4, "text-anchor": "end" });
+    t.textContent = c.label;
+    svg.appendChild(t);
+    let x = lw;
+    const total = c.values.reduce((a, b) => a + (b || 0), 0);
+    c.values.forEach((v, si) => {
+      if (!v) return;
+      const w = v / max * pw;
+      svg.appendChild(mk("rect", { x, y, width: Math.max(0, w - 2), height: bh,
+                                   rx: 3, fill: segs[si].colour }));
+      x += w;
+    });
+    const tv = mk("text", { x: W, y: y + bh / 2 + 4, "text-anchor": "end", class: "v" });
+    tv.textContent = n0(total);
+    svg.appendChild(tv);
+  });
+  return svg;
+}
+const key = items => items.map(i =>
+  `<span><i style="background:${i.colour}"></i>${esc(i.name)}</span>`).join("");
+
+/* ---- funnel + sources ---- */
+const ramp = ["var(--o5)", "var(--o4)", "var(--o3)", "var(--o2)", "var(--o1)"];
+$("#c-funnel").appendChild(hbars([
+  { label: "Enquiries", value: D.kpi.enquiries, target: D.targets.leads_target, colour: ramp[0] },
+  { label: "Qualified", value: D.kpi.qualified, colour: ramp[1] },
+  { label: "Test drives", value: D.kpi.test_drives, target: D.targets.td_target, colour: ramp[2] },
+  { label: "Bookings", value: D.kpi.bookings, target: D.targets.booking_target, colour: ramp[3] },
+  { label: "Retails", value: D.kpi.retails, target: D.targets.retail_target, colour: ramp[4] },
+], { alt: "Sales funnel from enquiries to retails, each against target" }));
+
+$("#c-src").appendChild(hbars(D.sources.map(s => ({
+  label: title(s.source), value: s.leads,
+})), { labelW: 132, alt: "Enquiries by channel" }));
+
+/* ---- consultant scorecard ---- */
+const bMax = Math.max(...D.board.map(r => Math.max(r.booking_achieved, r.booking_target)));
+$("#t-board").innerHTML = `
+  <caption>Bar shows bookings achieved; the tick is the booking target.</caption>
+  <thead><tr>
+    <th>Consultant</th><th>Team</th><th>Channel</th>
+    <th class="r">Enquiries</th><th class="r">TDs</th>
+    <th>Bookings vs target</th><th class="r">Bkg</th><th class="r">Target</th>
+    <th class="r">Retails</th><th class="r">Rtl target</th><th class="r">Conv</th>
+  </tr></thead>
+  <tbody>${D.board.map(r => {
+    const p = r.booking_target ? r.booking_achieved / r.booking_target * 100 : null;
+    return `<tr>
+      <td><b>${esc(r.consultant)}</b></td>
+      <td>${esc(title(r.team || "–"))}</td>
+      <td>${esc(title(r.primary_channel || "–"))}</td>
+      <td class="r num">${n0(r.total_leads)}</td>
+      <td class="r num">${n0(r.td_achieved)}</td>
+      <td><span class="bul">
+        <i style="width:${(r.booking_achieved / bMax * 96).toFixed(0)}px;background:${sev(p)}"></i>
+        <u style="left:${(r.booking_target / bMax * 96).toFixed(0)}px"></u></span></td>
+      <td class="r num">${n0(r.booking_achieved)}</td>
+      <td class="r num">${n0(r.booking_target)}</td>
+      <td class="r num">${n0(r.retail_achieved)}</td>
+      <td class="r num">${n0(r.retail_target)}</td>
+      <td class="r num">${pc(r.booking_conv_pct)}</td>
+    </tr>`;
+  }).join("")}</tbody>
+  <tfoot><tr><td colspan="11">
+    ${D.teams.map(t => `${esc(t.consultant.replace(/\s*[-–]\s*/g, " – "))}:
+      ${n0(t.booking_achieved)} of ${n0(t.booking_target)} bookings,
+      ${n0(t.retail_achieved)} of ${n0(t.retail_target)} retails`).join(" &nbsp;&middot;&nbsp; ")}
+  </td></tr></tfoot>`;
+
+/* ---- stock ageing ---- */
+const buckets = ["0-30", "31-60", "61-90", "91-180", "180+"];
+const segs = buckets.map((b, i) => ({ name: b + " d", colour: ramp[4 - i] }));
+$("#k-age").innerHTML = key(segs);
+const byModel = {};
+D.ageing.forEach(a => { (byModel[a.model] ||= {})[a.ageing_bucket] = a.units; });
+const ageCats = Object.entries(byModel)
+  .map(([m, b]) => ({ label: title(m), values: buckets.map(k => b[k] || 0) }))
+  .sort((a, b) => b.values.reduce((x, y) => x + y, 0) - a.values.reduce((x, y) => x + y, 0));
+$("#c-age").appendChild(stacked(ageCats, segs, { alt: "Stock ageing by model" }));
+
+/* ---- model position ---- */
+const mSeries = [
+  { name: "Free stock", colour: "var(--s1)" },
+  { name: "Bookings", colour: "var(--s2)" },
+  { name: "Back orders", colour: "var(--s3)" },
+];
+$("#k-model").innerHTML = key(mSeries);
+$("#c-model").appendChild(grouped(D.models.map(m => ({
+  label: title(m.model),
+  values: [m.free_stock, m.bookings_this_period, m.backorders_this_period],
+})), mSeries, { alt: "Free stock, bookings and back orders per model family" }));
+
+/* ---- free stock detail ---- */
+$("#t-avail").innerHTML = `
+  <thead><tr><th>Model</th><th>Variant</th><th>Colour</th>
+    <th class="r">Free</th><th class="r">Newest</th><th class="r">Oldest</th>
+    <th>Retail by</th></tr></thead>
+  <tbody>${D.avail.map(a => `<tr>
+    <td>${esc(title(a.model))}</td>
+    <td>${sameName(a.model, a.variant) ? "–" : esc(a.variant)}</td>
+    <td>${esc(a.colour)}</td>
+    <td class="r num">${n0(a.free_units)}</td>
+    <td class="r num">${n0(a.freshest_days)} d</td>
+    <td class="r num">${n0(a.oldest_days)} d</td>
+    <td>${dmy(a.earliest_retail_deadline)}</td>
+  </tr>`).join("")}</tbody>
+  <tfoot><tr><td colspan="7">${D.avail.length} model / variant / colour
+    combinations free on the floor, ${n0(D.kpi.free_stock)} cars in
+    total.</td></tr></tfoot>`;
+
+/* ---- chase list ---- */
+const oldest = D.backorders[0];
+const queues = [
+  {
+    title: "Stock past its NADCON retail deadline",
+    chip: "Volkswagen asks first",
+    colour: "var(--critical)",
+    count: D.deadline.length, unit: "cars",
+    body: `Free units whose Volkswagen retail date has already gone by. The oldest
+           has been standing ${n0(D.deadline[0].stock_aging_days)} days, against a
+           deadline of ${dmy(D.deadline[0].nadcon_retail_date)}.`,
+    open: "Show the cars",
+    table: `<thead><tr><th>Chassis</th><th>Model</th><th>Variant</th>
+              <th>Colour</th><th class="r">Standing</th><th>Retail by</th></tr></thead>
+            <tbody>${D.deadline.map(s => `<tr>
+              <td class="mono">${esc(s.chassis_number)}</td>
+              <td>${esc(title(s.model))}</td><td>${sameName(s.model, s.variant) ? "–" : esc(s.variant)}</td>
+              <td>${esc(s.colour)}</td>
+              <td class="r num">${n0(s.stock_aging_days)} d</td>
+              <td>${dmy(s.nadcon_retail_date)}</td></tr>`).join("")}</tbody>`,
+  },
+  {
+    title: "Orders with no car against them",
+    chip: "Customers waiting",
+    colour: "var(--serious)",
+    count: D.backorders.length, unit: "orders",
+    body: `Bookings marked no-stock across the whole open order book, of which
+           ${n0(D.kpi.backorders)} were taken in August. The longest wait is
+           ${esc(title(oldest.customer_name))} at ${n0(oldest.days_waiting)} days
+           for a ${esc(carName(oldest.model, oldest.variant))}.`,
+    open: "Show the orders",
+    table: `<thead><tr><th>Customer</th><th>Model</th><th>Variant</th>
+              <th>Colour</th><th>Consultant</th><th class="r">Waiting</th>
+              <th>Fillable now</th></tr></thead>
+            <tbody>${D.backorders.map(b => `<tr>
+              <td>${esc(title(b.customer_name))}</td>
+              <td>${esc(title(b.model))}</td><td>${sameName(b.model, b.variant) ? "–" : esc(b.variant)}</td>
+              <td>${esc(b.colour || "–")}</td>
+              <td>${esc(b.consultant || "–")}</td>
+              <td class="r num">${n0(b.days_waiting)} d</td>
+              <td>${b.matching_free_units > 0
+                    ? `<span class="chip"><i style="background:var(--good)"></i>${b.matching_free_units} in stock</span>`
+                    : `<span class="chip"><i style="background:var(--muted)"></i>no match</span>`}</td>
+              </tr>`).join("")}</tbody>`,
+  },
+  {
+    title: "Bookings never punched into the CRM",
+    chip: "Invisible to VW",
+    colour: "var(--warning)",
+    count: D.nocrm.length, unit: "bookings",
+    body: `Sold in August with the CRM entry column still reading no. Until someone
+           enters them, these cars do not exist in Volkswagen&rsquo;s reporting, and
+           the dealership is not credited for them.`,
+    open: "Show the bookings",
+    table: `<thead><tr><th>Customer</th><th>Model</th><th>Variant</th>
+              <th>Consultant</th><th>Booked</th></tr></thead>
+            <tbody>${D.nocrm.map(b => `<tr>
+              <td>${esc(title(b.customer_name))}</td>
+              <td>${esc(title(b.model))}</td><td>${sameName(b.model, b.variant) ? "–" : esc(b.variant)}</td>
+              <td>${esc(b.consultant || "–")}</td>
+              <td>${dmy(b.booking_date)}</td></tr>`).join("")}</tbody>`,
+  },
+];
+$("#chase").innerHTML = queues.map(q => `
+  <article>
+    <div class="stripe" style="background:${q.colour}"></div>
+    <div class="body">
+      <h3>${esc(q.title)}</h3>
+      <p>${q.body}</p>
+      <div class="detail"><details><summary>${esc(q.open)}</summary>
+        <div class="scroll"><table>${q.table}</table></div>
+      </details></div>
+    </div>
+    <div class="side">
+      <div class="count num">${n0(q.count)}</div>
+      <div class="unit">${esc(q.unit)}</div>
+      <div style="margin-top:8px"><span class="chip">
+        <i style="background:${q.colour}"></i>${esc(q.chip)}</span></div>
+    </div>
+  </article>`).join("");
+
+/* ---- data quality ---- */
+const sevDot = { high: "var(--critical)", medium: "var(--warning)", low: "var(--muted)" };
+$("#dq").innerHTML = D.dq.map(d => `
+  <div>
+    <div class="issue">${esc(d.issue)}</div>
+    <div><span class="chip"><i style="background:${sevDot[d.severity]}"></i>
+      ${esc(d.severity)} &middot; ${esc(d.affected_rows)} rows</span></div>
+    <p class="detail-t">${esc(d.detail)}</p>
+  </div>`).join("");
+</script>
