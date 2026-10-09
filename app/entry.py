@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import threading
+from contextlib import contextmanager
 import time
 import uuid
 from datetime import date, datetime
@@ -403,7 +404,7 @@ def clear_period(label: str, confirm: str = Query(..., description="Must repeat 
         raise HTTPException(400, "Type the month's label exactly to confirm.")
 
     removed: dict[str, int] = {}
-    with db_connect() as cx:
+    with _breaker_guard(), db_connect() as cx:
         with cx.transaction():
             row = cx.execute(
                 "SELECT period_id, label FROM dim_period WHERE upper(label) = upper(%s) FOR UPDATE",
@@ -449,7 +450,7 @@ def delete_period(label: str, confirm: str = Query(..., description="Must repeat
         raise HTTPException(400, "Type the month's label exactly to confirm the deletion.")
 
     removed: dict[str, int] = {}
-    with db_connect(autocommit=False) as cx:
+    with _breaker_guard(), db_connect(autocommit=False) as cx:
         with cx.transaction():
             row = cx.execute(
                 "SELECT period_id, label, is_active FROM dim_period "
@@ -567,6 +568,27 @@ def _upload_problem(content: bytes) -> str | None:
 # for it instead of failing. ONLY the circuit breaker is retried: any other
 # connection error (a wrong password, a database that is down) fails at once,
 # because retrying a failed login would feed the very block being waited out.
+@contextmanager
+def _breaker_guard():
+    """Turn the pooler's circuit-breaker block into a readable 503.
+
+    FIX (2026-10-09): "Empty it" and "Remove the month" showed a bare "500" when
+    Supabase was blocking new connections (ECIRCUITBREAKER, see the note below).
+    Nothing was wrong with the month or the delete - no connection could be
+    opened - and the person had no way to know that. Only that error is turned
+    into a 503 with an explanation; anything else is raised as it was.
+    """
+    try:
+        yield
+    except psycopg.OperationalError as exc:
+        if "ECIRCUITBREAKER" in str(exc):
+            raise HTTPException(
+                503, "The database is temporarily refusing new connections (too many "
+                     "failed logins from this server's address). Nothing was changed. "
+                     "Wait a few minutes and try again.") from exc
+        raise
+
+
 _BREAKER_TRIES = 6
 _BREAKER_WAIT_SECONDS = 30
 
