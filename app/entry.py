@@ -556,6 +556,37 @@ def _upload_problem(content: bytes) -> str | None:
         wb.close()
 
 
+# FIX (2026-10-09): an upload died at its last step with
+#   FATAL: (ECIRCUITBREAKER) too many authentication failures, new connections
+#   are temporarily blocked
+# after two minutes of parsing, and the person had to start again. Supabase's
+# pooler blocks new connections from an address for a few minutes after it has
+# seen repeated failed logins - and on Render that address is shared with other
+# services (a second service with a stale DATABASE_URL keeps retrying and keeps
+# the block open for everyone). The block clears by itself, so the load waits
+# for it instead of failing. ONLY the circuit breaker is retried: any other
+# connection error (a wrong password, a database that is down) fails at once,
+# because retrying a failed login would feed the very block being waited out.
+_BREAKER_TRIES = 6
+_BREAKER_WAIT_SECONDS = 30
+
+
+def _connect_for_load(job_id: str):
+    """A direct connection for a workbook load, waiting out a pooler block."""
+    for attempt in range(1, _BREAKER_TRIES + 1):
+        try:
+            return db_connect(autocommit=True)
+        except psycopg.OperationalError as exc:
+            if "ECIRCUITBREAKER" not in str(exc) or attempt == _BREAKER_TRIES:
+                raise
+            log.warning("ingest job %s: database temporarily blocked, retry %d/%d",
+                        job_id, attempt, _BREAKER_TRIES - 1)
+            _job_set(job_id, step=("waiting for the database - it is temporarily "
+                                   f"blocking new connections (retry {attempt} of "
+                                   f"{_BREAKER_TRIES - 1})"))
+            time.sleep(_BREAKER_WAIT_SECONDS)
+
+
 def _ingest_worker(job_id: str, content: bytes, fname: str, period_label: str,
                    period_start: date, period_end: date, uploaded_by: str,
                    mode: str = "replace") -> None:
@@ -565,7 +596,7 @@ def _ingest_worker(job_id: str, content: bytes, fname: str, period_label: str,
         wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
 
         _job_set(job_id, step="writing to the database")
-        with db_connect(autocommit=True) as cx:
+        with _connect_for_load(job_id) as cx:
             # One transaction around the whole load, so a workbook that fails
             # part way leaves the month exactly as it was.
             #
