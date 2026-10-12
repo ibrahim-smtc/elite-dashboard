@@ -434,9 +434,11 @@ button.primary:disabled:hover {
   gap: 26px;
   margin-bottom: 26px;
 }
+/* Six figures, three to a row: two even rows rather than a row of four and
+   a row of two. Narrower screens take them two, then one, to a row. */
 .grid-tiles {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   column-gap: 0;
   row-gap: 0;
   margin-bottom: 40px;
@@ -445,7 +447,7 @@ button.primary:disabled:hover {
 @media (max-width: 560px)  { .grid-tiles { grid-template-columns: minmax(0, 1fr); } }
 
 /* Tile */
-/* Eight tiles in two rows read as eight boxes; eight FIGURES separated by a
+/* Six tiles in two rows read as six boxes; six FIGURES separated by a
    hairline read as one instrument panel. Only the top rule is drawn, so the
    row reads across rather than each cell fencing itself off. */
 .kpi-tile {

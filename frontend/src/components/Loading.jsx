@@ -96,7 +96,7 @@ export default function Loading({ done = 0, total = 16 }) {
         </div>
 
         <div className="grid-tiles">
-          {Array.from({ length: 8 }, (_, i) => (
+          {Array.from({ length: 6 }, (_, i) => (
             <div key={i} className="kpi-tile">
               <Block h={9} w="64%" delay={i * 60} />
               <div style={{ height: 14 }} />
