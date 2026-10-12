@@ -98,21 +98,14 @@ export default function FolderTat() {
           </div>
 
           {data.impossible > 0 && (
-            <div style={{
-              display: 'flex', alignItems: 'flex-start', gap: 8,
-              margin: '0 0 14px', padding: '9px 12px',
-              border: '1px solid var(--warning)', background: 'var(--critical-light)',
-              fontSize: 'var(--fs-small)', lineHeight: 1.5, color: 'var(--warning)',
+            <p style={{
+              margin: '0 0 14px', fontSize: 'var(--fs-small)', lineHeight: 1.5,
+              color: 'var(--ink-muted)',
             }}>
-              <AlertTriangle size={14} style={{ flex: 'none', marginTop: 1 }} />
-              <span>
-                {n0(data.impossible)} file{data.impossible === 1 ? '' : 's'} reached
-                accounts <b>before</b> being lined up, so the workbook holds those
-                two dates the wrong way round.{' '}
-                {data.impossible === 1 ? 'It is' : 'They are'} listed first, with
-                the disagreeing dates marked, and left out of the average.
-              </span>
-            </div>
+              {data.impossible === 1
+                ? '1 file reached accounts before it was lined up, so its dates are the wrong way round. It is listed first in red and left out of the average.'
+                : `${n0(data.impossible)} files reached accounts before they were lined up, so their dates are the wrong way round. They are listed first in red and left out of the average.`}
+            </p>
           )}
 
           <div className="table-wrap">

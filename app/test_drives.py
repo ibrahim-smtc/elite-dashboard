@@ -488,7 +488,7 @@ def create_booking(b: BookingIn):
                                       AND status IN ('booked', 'attended', 'no_show'){_real(cx)}""",
                                (b.car_id, b.date, b.start)).fetchone()
             who = clash["customer"] if clash else "someone else"
-            raise HTTPException(409, f"{b.start} on that car is already booked for {who}.")
+            raise HTTPException(409, f"{b.start} on that car is already scheduled for {who}.")
         return _drives(cx, "booking_id = %s", (row["booking_id"],))[0]
 
 
@@ -508,9 +508,9 @@ def update_booking(p: BookingPatch, booking_id: str = PathParam(..., min_length=
                                  WHERE booking_id = %s RETURNING booking_id""",
                              (p.status, booking_id)).fetchone()
         except psycopg.errors.CheckViolation:
-            raise HTTPException(422, "An enquiry needs a car, a day and a time before it can be booked.")
+            raise HTTPException(422, "An enquiry needs a car, a day and a time before it can be scheduled.")
         except psycopg.errors.UniqueViolation:
-            raise HTTPException(409, "That slot has since been booked for someone else.")
+            raise HTTPException(409, "That slot has since been scheduled for someone else.")
         if not row:
             raise HTTPException(404, "No such test drive.")
         return _drives(cx, "booking_id = %s", (row["booking_id"],))[0]

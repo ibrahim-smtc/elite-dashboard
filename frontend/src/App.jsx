@@ -59,7 +59,7 @@ const PAGES = [
   { id: 'inventory', path: '/inventory', label: 'Inventory', note: 'Stock by model, ageing, and orders awaiting a car' },
   { id: 'calls',     path: '/calls',     label: 'Calls',     note: 'What the agent handled on the phone' },
   // Prototype: see app/test_drives.py.
-  { id: 'testdrives', path: '/test-drives', label: 'Test Drives', note: 'Test drives booked by the AI agent, the sales desk and walk-ins, and test-drive enquiries' },
+  { id: 'testdrives', path: '/test-drives', label: 'Test Drives', note: 'Test drives scheduled by the AI agent, the sales desk and walk-ins, and test-drive enquiries' },
 ];
 
 function Dashboard() {

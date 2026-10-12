@@ -70,7 +70,7 @@ function dateFromHint(hint, today) {
    still owed a time. */
 const STATUS = {
   requested: { label: 'Enquiry', many: 'enquiries', one: 'enquiry' },
-  booked:    { label: 'Booked', many: 'booked', one: 'booked' },
+  booked:    { label: 'Scheduled', many: 'scheduled', one: 'scheduled' },
   attended:  { label: 'Attended', many: 'attended', one: 'attended' },
   no_show:   { label: 'No-show', many: 'no-shows', one: 'no-show' },
   cancelled: { label: 'Cancelled', many: 'cancelled', one: 'cancelled' },
@@ -142,7 +142,7 @@ function BookingForm({ setup, draft, onCancel, onSaved }) {
   const why = !form.date || free.length ? null
     : form.date < setup.today ? 'That day has passed.'
     : form.date === setup.today && now >= last ? `Today’s slots have all gone; the last was ${last}.`
-    : `The ${carName} is booked in every slot ${form.date === setup.today ? 'left today' : 'that day'}.`;
+    : `The ${carName} has a drive scheduled in every slot ${form.date === setup.today ? 'left today' : 'that day'}.`;
   const nextDay = form.date >= setup.today ? isoAdd(form.date, 1) : (now < last ? setup.today : isoAdd(setup.today, 1));
   const set = (k, v) => { setError(null); setForm(f => ({ ...f, [k]: v })); };
 
@@ -190,7 +190,7 @@ function BookingForm({ setup, draft, onCancel, onSaved }) {
       )}
       {form.fromMissed && (
         <div className="tdb-fromcall">
-          <b>Booking {form.fromMissed.customer} again</b>
+          <b>Scheduling {form.fromMissed.customer} again</b>
           <div>
             {form.fromMissed.start
               ? `Missed the drive on ${dayLong(form.fromMissed.date)} at ${form.fromMissed.start}.`
@@ -256,7 +256,7 @@ function BookingForm({ setup, draft, onCancel, onSaved }) {
             drive at the customer's home was removed - addresses are not stored. */}
       </fieldset>
       <fieldset className="tdb-choice">
-        <legend>Booked by</legend>
+        <legend>Scheduled by</legend>
         {['Staff', 'Walk-in', 'AI agent'].map(v => (
           <label key={v}><input type="radio" name="src" checked={form.source === v}
                                 onChange={() => set('source', v)} /> {v}</label>
@@ -266,7 +266,7 @@ function BookingForm({ setup, draft, onCancel, onSaved }) {
       <div className="tdb-actions">
         <button type="button" className="rail-quiet" onClick={onCancel}>Cancel</button>
         <button type="submit" className="primary" disabled={busy}>
-          {busy ? 'Booking…' : 'Book test drive'}
+          {busy ? 'Scheduling…' : 'Schedule test drive'}
         </button>
       </div>
     </form>
@@ -310,7 +310,7 @@ function BookingDetail({ booking, car, onChanged, onSchedule, onBookAgain }) {
         <dt>Customer</dt><dd>{booking.customer}{booking.phone ? ` · ${booking.phone}` : ''}</dd>
         <dt>Where</dt><dd>{booking.location === 'Home' ? `At home${booking.address ? `: ${booking.address}` : ''}` : 'Showroom'}</dd>
         <dt>Executive</dt><dd>{booking.consultant || 'Not assigned'}</dd>
-        <dt>Booked by</dt><dd>{booking.source}{from}</dd>
+        <dt>Scheduled by</dt><dd>{booking.source}{from}</dd>
         {booking.note && (
           <><dt>{booking.source === 'AI agent' ? 'Agent’s note' : 'Note'}</dt><dd className="tdb-notetext">{booking.note}</dd></>
         )}
@@ -342,11 +342,11 @@ function BookingDetail({ booking, car, onChanged, onSchedule, onBookAgain }) {
               </button>
             )}
             {!missed && booking.status !== 'booked' && (
-              <button type="button" disabled={!!busy} onClick={() => change('booked')}>Back to booked</button>
+              <button type="button" disabled={!!busy} onClick={() => change('booked')}>Back to scheduled</button>
             )}
             {booking.status === 'no_show' && (
               <button type="button" className={missed ? 'primary' : ''} disabled={!!busy} onClick={() => onBookAgain(booking)}>
-                Book again
+                Schedule again
               </button>
             )}
           </>
@@ -379,7 +379,7 @@ function Headline({ stats, carName, onEnquiries }) {
         <span className="tdb-kpi-label">Next 7 days</span>
         <b className="tdb-kpi-value">{stats.week}</b>
         <span className="tdb-kpi-sub">
-          {next ? `Next: ${dayLong(next.date)} ${next.start} · ${carName(next.car_id) || 'car not set'}` : 'Nothing booked yet'}
+          {next ? `Next: ${dayLong(next.date)} ${next.start} · ${carName(next.car_id) || 'car not set'}` : 'Nothing scheduled yet'}
         </span>
       </div>
       <button type="button" className={`tdb-kpi tdb-kpi-btn ${stats.waiting ? 'is-warn' : ''}`} onClick={onEnquiries}>
@@ -684,7 +684,7 @@ function Calendar({ setup, drives, calls = [], month, setMonth, day, setDay, onS
                   data-status={x.fromCall ? 'call' : x.status} onClick={() => openEntry(x)}
                   title={x.fromCall
                     ? `${x.customer} · test drive promised on a call, not saved yet · click to schedule`
-                    : `${x.customer} · ${x.status === 'no_show' ? 'enquiry, day passed with no booking' : 'enquiry'} · ${askLabel(x).toLowerCase()}${x.date ? '' : ` · came in ${shortDate(x.enquired_on)}`}`}>
+                    : `${x.customer} · ${x.status === 'no_show' ? 'enquiry, day passed with no drive scheduled' : 'enquiry'} · ${askLabel(x).toLowerCase()}${x.date ? '' : ` · came in ${shortDate(x.enquired_on)}`}`}>
             <b>{x.customer}</b>
             <span>{askLabel(x)}</span>
           </button>
@@ -813,7 +813,7 @@ function Calendar({ setup, drives, calls = [], month, setMonth, day, setDay, onS
                         : (
                           <button key={s} type="button" className="tdb-slot tdb-empty"
                                   onClick={() => onSlot(c.id, s)}
-                                  aria-label={`Book ${c.name} at ${s}`} title={`Book ${c.name} at ${s}`} />
+                                  aria-label={`Schedule ${c.name} at ${s}`} title={`Schedule ${c.name} at ${s}`} />
                         );
                     })}
                   </React.Fragment>
@@ -838,7 +838,7 @@ function Calendar({ setup, drives, calls = [], month, setMonth, day, setDay, onS
             <span><i className="tdb-swatch" data-status="requested" /> Enquiry</span>
             {samples && <span><i className="tdb-swatch is-sample" /> Sample</span>}
             <span className="tdb-hint">
-              {past ? 'This day has passed, so its slots cannot be booked.'
+              {past ? 'This day has passed, so its slots cannot be scheduled.'
                 : `Click an empty slot to book. ${setup.slot_minutes}-minute slots, ${setup.slots[0]} to 19:00.`}
             </span>
           </div>
@@ -854,7 +854,7 @@ function Calendar({ setup, drives, calls = [], month, setMonth, day, setDay, onS
               {loading ? 'Loading…'
                 : drives.some(x => x.on === day) ? 'Nothing on this day matches the filters.'
                 : past ? 'No test drives on this day.'
-                : 'No test drives booked yet. Click a slot above to book one.'}
+                : 'No test drives scheduled yet. Click a slot above to schedule one.'}
             </div>
           ) : (
             <div className="tdb-agenda">
@@ -868,7 +868,7 @@ function Calendar({ setup, drives, calls = [], month, setMonth, day, setDay, onS
                       {[b.location === 'Home' ? `Home${b.address ? `: ${b.address}` : ''}` : 'Showroom',
                         b.phone, b.consultant || 'Executive not assigned', b.source,
                         b.status === 'no_show' && !b.start
-                          ? `enquiry${b.asked_time ? ` for ${b.asked_time}` : ''}, never booked` : null].filter(Boolean).join(' · ')}
+                          ? `enquiry${b.asked_time ? ` for ${b.asked_time}` : ''}, never scheduled` : null].filter(Boolean).join(' · ')}
                     </div>
                   </div>
                   <span className="tdb-pill" data-status={b.status}>{STATUS[b.status].label}</span>
@@ -999,7 +999,7 @@ function FleetAndTeam({ setup }) {
         <h3 className="tdb-h3">Cars &middot; {models} models, {variants} variants</h3>
         <p className="tdb-lede">
           The line-up as the catalogue holds it, busiest first. The database records stock but not
-          which cars are demonstrators, so test drives are booked on one demo car per model; a customer
+          which cars are demonstrators, so test drives are scheduled on one demo car per model; a customer
           can be shown any of its variants.
         </p>
         <div className="tdb-cars">
@@ -1029,7 +1029,7 @@ function FleetAndTeam({ setup }) {
       </section>
       <section className="tdb-teamwrap">
         <h3 className="tdb-h3">Sales executives &middot; {setup.consultants.length}</h3>
-        <p className="tdb-lede">Every active consultant in the database, offered when a drive is booked.</p>
+        <p className="tdb-lede">Every active consultant in the database, offered when a drive is scheduled.</p>
         <div className="tdb-team">
           {setup.consultants.map(c => <span key={c}>{c}</span>)}
         </div>
@@ -1174,7 +1174,7 @@ export default function TestDriveBoard({ refreshKey }) {
         </div>
       </div>
       <div className="tdb-note">
-        Test drives only &middot; booked by the AI agent on a call, by the sales desk, or for a walk-in &middot;
+        Test drives only &middot; scheduled by the AI agent on a call, by the sales desk, or for a walk-in &middot;
         enquiries are test drives asked for and still waiting for a time
         {samples && <> &middot; dashed drives are samples, made up for showing the section</>}
       </div>
@@ -1198,7 +1198,7 @@ export default function TestDriveBoard({ refreshKey }) {
       )}
       {tab === 'fleet' && <FleetAndTeam setup={setup} />}
 
-      <Dialog open={!!draft} title="Book a test drive" onClose={() => setDraft(null)} wide>
+      <Dialog open={!!draft} title="Schedule a test drive" onClose={() => setDraft(null)} wide>
         {draft && <BookingForm setup={setup} draft={draft} onCancel={() => setDraft(null)} onSaved={saved} />}
       </Dialog>
       <Dialog open={!!opened} title={opened?.status === 'requested' ? 'Test-drive enquiry' : 'Test drive'}
