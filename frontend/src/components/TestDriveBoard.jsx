@@ -165,7 +165,7 @@ function BookingForm({ setup, draft, onCancel, onSaved }) {
         car_id: form.car_id, date: form.date, start: form.start,
         // PII POLICY (2026-10-08): the customer's phone number and home
         // address are not stored, so the form does not ask for them and none
-        // is sent (the server would only replace them with [REDACTED]).
+        // is sent (the server stores a phone only masked, an address never).
         customer: form.customer.trim(),
         consultant: form.consultant, location: form.location,
         source: form.source, call_id: form.call_id || null,

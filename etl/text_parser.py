@@ -284,9 +284,9 @@ def ingest_text_report(
                 crm_done = nz.as_bool(get_val(col_crm)) or False
                 amount = nz.as_num(get_val(col_amt))
                 my = nz.as_int(get_val(col_my))
-                # PII POLICY (2026-10-08): the phone is never stored, and one
-                # typed into the notes is cut out of them - see etl/pii.py.
-                mobile = pii.redact(get_val(col_mobile))
+                # PII POLICY (revised 2026-10-12): the phone is stored masked,
+                # and one typed into the notes is masked there - see etl/pii.py.
+                mobile = pii.mask_phone(get_val(col_mobile))
                 notes = pii.scrub_text(get_val(col_notes))
 
                 # FIX (2026-10-08): load_period_id is now set on the row. It was
@@ -356,8 +356,8 @@ def ingest_text_report(
                 model_id = dims.resolve_model(cx, nz.model_from_text(model_name)) if model_name else None
                 source_name = get_val(col_src)
                 source_id = dims.resolve_source(cx, source_name) if source_name else None
-                # PII POLICY (2026-10-08): the phone is never stored.
-                mobile = pii.redact(get_val(col_mobile))
+                # PII POLICY (revised 2026-10-12): the phone is stored masked.
+                mobile = pii.mask_phone(get_val(col_mobile))
                 qualified = nz.as_bool(get_val(col_qual))
                 stage = "Qualified" if qualified else "New"
                 rating = get_val(col_rating)

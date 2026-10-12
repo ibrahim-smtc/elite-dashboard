@@ -4,20 +4,23 @@ This document contains the API endpoints required for the Perfox inbound/outboun
 
 ---
 
-## Customer PII is not stored (policy, 2026-10-08)
+## Customer PII is not stored in full (policy, 2026-10-08, revised 2026-10-12)
 
 A customer's **phone number, email address and postal address are never
-stored**. Every endpoint below still *accepts* them — sending one is not an
-error — but the value is replaced with `[REDACTED]` before it reaches the
-database, and a phone or email typed inside a message is cut out of the text
-(`[PHONE REDACTED]`). The same rule is enforced by database triggers, so it
-also applies to anything the agent writes to Supabase directly.
+stored in full**. Every endpoint below still *accepts* them — sending one is
+not an error — but before anything reaches the database a phone number is
+masked to its first three digits (`984*******`), an email to the first three
+characters and the domain (`rav***@gmail.com`), and an address is replaced
+with `[REDACTED]`. A phone or email typed inside a message is masked the same
+way. The same rule is enforced by database triggers, so it also applies to
+anything the agent writes to Supabase directly. (Rows stored before
+2026-10-12 hold `[REDACTED]` instead of a masked value.)
 
 What this means for the agent:
 
-- **Leads come back without a phone number.** `mobile` reads `[REDACTED]`. An
-  outbound agent cannot call leads back from this data — the number has to
-  come from somewhere that is allowed to hold it.
+- **Leads come back without a usable phone number.** `mobile` reads like
+  `984*******`. An outbound agent cannot call leads back from this data — the
+  number has to come from somewhere that is allowed to hold it.
 - **Orders are found by the customer's name**, not by phone.
   `get_order_status` takes a name only.
 - **Customer names are kept** — they were not part of the instruction, and an
@@ -109,7 +112,7 @@ An array of lead objects:
   {
     "lead_id": 52196,
     "lead_name": "Nikilesh S",
-    "mobile": "[REDACTED]",
+    "mobile": "984*******",
     "source_id": 1,
     "source": "WALKIN",
     "consultant_id": 87,
@@ -146,7 +149,7 @@ If the Perfox agent needs to ingest entirely *new* leads (e.g. from an inbound c
 ```json
 {
   "lead_name": "John Doe",
-  "phone_number": "555-0199",       // Accepted, stored as [REDACTED]
+  "phone_number": "9845012345",     // Accepted, stored masked: 984*******
   "source_id": null,                // Optional. Omitted = the DIGITAL source.
                                     // (FIX 2026-10-08: used to default to id 1,
                                     // which is not a fixed channel.)
@@ -157,7 +160,7 @@ If the Perfox agent needs to ingest entirely *new* leads (e.g. from an inbound c
   "created_at": null,               // Optional: when the enquiry came in.
                                     // Omit for "now". Decides which reporting
                                     // month the lead is filed under.
-  "email": null,                    // Optional; stored as [REDACTED]
+  "email": null,                    // Optional; stored masked: rav***@gmail.com
   "lead_type": null,                // Optional: Retail / Corporate B2B / B2C
   "model_of_interest": null,        // Optional: free text
   "rating": null                    // Optional: Hot / Warm / Cold
@@ -267,7 +270,7 @@ blank rows.
   "period": "AUG2026",
   "in_active_period": true,
   "visible_on_dashboard": true,
-  "received": {"name": "Asha Menon", "phone": "[REDACTED]", ...}
+  "received": {"name": "Asha Menon", "phone": "987*******", ...}
 }
 ```
 
@@ -359,7 +362,7 @@ curl -X POST https://<your-public-url>/api/crm/fetch-bookings \
     "booking_id": 4003,
     "booking_date": "2026-08-31",
     "customer_name": "praneet gogoi",
-    "mobile": "[REDACTED]",
+    "mobile": "984*******",
     "consultant": "Lokesh Reddy K",
     "model": "GOLF GTI",
     "variant": "GT",

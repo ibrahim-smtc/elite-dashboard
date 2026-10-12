@@ -352,13 +352,18 @@ class BookingIn(BaseModel):
     request_id: Optional[str] = Field(default=None, max_length=32)
 
     # PII POLICY (2026-10-08): a customer's phone number and home address are
-    # never stored (etl/pii.py). The form still takes them - staff may type
-    # them - but they are replaced here, before anything is written, and
-    # db/pii.sql redacts the same two columns again in the database. A phone
-    # or email typed into the name is cut out of it.
-    @field_validator("phone", "address")
+    # never stored in full (etl/pii.py): the phone is masked (984*******) and
+    # the address removed, here, before anything is written, and db/pii.sql
+    # does the same again in the database. A phone or email typed into the
+    # name is masked inside it (revised 2026-10-12; both were removed before).
+    @field_validator("phone")
     @classmethod
     def _no_pii(cls, v):
+        return pii.mask_phone(v) or ""
+
+    @field_validator("address")
+    @classmethod
+    def _no_address(cls, v):
         return pii.redact(v) or ""
 
     @field_validator("customer")

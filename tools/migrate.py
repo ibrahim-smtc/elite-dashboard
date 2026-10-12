@@ -47,18 +47,19 @@ sys.path.insert(0, str(ROOT))
 from etl import pii  # noqa: E402
 
 # Every place customer PII can be stored: (schema, table, column, kind).
-# "redact" columns hold only a phone/email/address; "scrub" columns are free
-# text that may contain one. Mirrors the triggers in db/pii.sql.
+# "phone" / "email" columns hold only that (masked); "redact" columns hold only
+# an address; "scrub" columns are free text that may contain a phone or email.
+# Mirrors the triggers in db/pii.sql.
 PII_COLUMNS = [
-    ("dsr", "lead", "mobile", "redact"), ("dsr", "lead", "email", "redact"),
+    ("dsr", "lead", "mobile", "phone"), ("dsr", "lead", "email", "email"),
     ("dsr", "lead", "enquiry_note", "scrub"),
-    ("dsr", "booking", "mobile", "redact"), ("dsr", "booking", "notes", "scrub"),
-    ("dsr", "test_drive", "mobile", "redact"), ("dsr", "test_drive", "email", "redact"),
-    ("dsr", "registration", "contact_no", "redact"),
-    ("dsr", "registration", "email", "redact"),
+    ("dsr", "booking", "mobile", "phone"), ("dsr", "booking", "notes", "scrub"),
+    ("dsr", "test_drive", "mobile", "phone"), ("dsr", "test_drive", "email", "email"),
+    ("dsr", "registration", "contact_no", "phone"),
+    ("dsr", "registration", "email", "email"),
     ("dsr", "registration", "address", "redact"),
     ("dsr", "allotment", "remarks", "scrub"),
-    ("public", "enquiries", "mobile", "redact"), ("public", "enquiries", "email", "redact"),
+    ("public", "enquiries", "mobile", "phone"), ("public", "enquiries", "email", "email"),
     ("public", "enquiries", "subject", "scrub"), ("public", "enquiries", "message", "scrub"),
     # Name fields can carry a phone or email the CRM export put there.
     ("dsr", "lead", "lead_name", "scrub"), ("dsr", "test_drive", "lead_name", "scrub"),
@@ -67,7 +68,7 @@ PII_COLUMNS = [
     ("dsr", "registration", "nadcon_punched_customer", "scrub"),
     ("public", "enquiries", "full_name", "scrub"),
     # The test-drive board (db/test_drives.sql).
-    ("dsr", "test_drive_booking", "phone", "redact"),
+    ("dsr", "test_drive_booking", "phone", "phone"),
     ("dsr", "test_drive_booking", "address", "redact"),
     ("dsr", "test_drive_booking", "customer", "scrub"),
     ("dsr", "test_drive_booking", "note", "scrub"),
@@ -118,7 +119,16 @@ def pii_census(cx) -> dict:
     for schema, table, column, kind in PII_COLUMNS:
         if not _exists(cx, schema, table, column):
             continue
-        if kind == "redact":
+        # PII POLICY (revised 2026-10-12): a masked phone (984*******) or email
+        # (rav***@gmail.com) is not "in the clear"; neither is a value removed
+        # as [REDACTED] before masking existed. Anything else in those columns is.
+        if kind in ("phone", "email"):
+            masked = pii.MASKED_PHONE_PATTERN if kind == "phone" else pii.MASKED_EMAIL_PATTERN
+            sql = (f'SELECT count(*) FROM {schema}."{table}" '
+                   f'WHERE "{column}" IS NOT NULL AND "{column}" <> %s '
+                   f'AND "{column}" !~ %s')
+            params = (pii.REDACTED, "^" + masked + "$")
+        elif kind == "redact":
             sql = (f'SELECT count(*) FROM {schema}."{table}" '
                    f'WHERE "{column}" IS NOT NULL AND "{column}" <> %s')
             params = (pii.REDACTED,)

@@ -55,15 +55,20 @@ class LeadIn(_Payload):
     qualified: bool = Field(True, description="Counts toward qualified enquiries")
     created_on: date | None = Field(None, description="Defaults to today")
 
-    # PII POLICY (2026-10-08): customer phone numbers and emails are never
-    # stored (etl/pii.py). They are replaced here, at the edge of the request,
-    # so nothing after this point ever holds the real value. This used to
-    # validate the number as a 10-digit mobile; a number that is about to be
-    # discarded is not worth refusing a form over, so it no longer does.
-    @field_validator("mobile", "email")
+    # PII POLICY (2026-10-08, revised 2026-10-12): customer phone numbers and
+    # emails are stored masked (etl/pii.py). They are masked here, at the edge
+    # of the request, so nothing after this point ever holds the full value.
+    # This used to validate the number as a 10-digit mobile; a number that is
+    # about to be masked is not worth refusing a form over, so it no longer does.
+    @field_validator("mobile")
     @classmethod
     def _mobile(cls, v):
-        return pii.redact(v)
+        return pii.mask_phone(v)
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, v):
+        return pii.mask_email(v)
 
 
 class BookingIn(_Payload):
@@ -89,7 +94,7 @@ class BookingIn(_Payload):
     crm_entry_done: bool | None = None
     notes: str | None = Field(None, max_length=400)
 
-    # PII POLICY (2026-10-08): phone redacted, phone/email cut out of notes.
+    # PII POLICY (revised 2026-10-12): phone masked, phone/email masked in notes.
     @field_validator("mobile")
     @classmethod
     def _mobile(cls, v):
@@ -129,7 +134,7 @@ class BookingPatch(_Payload):
     @field_validator("mobile")
     @classmethod
     def _mobile(cls, v):
-        return pii.redact(v)
+        return pii.mask_phone(v)
 
     @field_validator("notes")
     @classmethod

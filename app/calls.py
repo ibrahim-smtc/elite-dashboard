@@ -98,7 +98,8 @@ def _get(path: str) -> Any:
 # transcript also writes a number digit by digit ("8 8 2 2 4 4 1 7 2 2") or in
 # groups, which that pattern does not. Any run of ten or more digits, with
 # single spaces or hyphens between them, is therefore treated as a phone number
-# here. A six-digit reference number the agent reads back is left alone. What
+# here, and masked like any other (882*******; revised 2026-10-12). A six-digit
+# reference number the agent reads back is left alone. What
 # can NOT be caught: digits spoken as words ("eight eight two...", or in Hindi),
 # and any address - and the audio recording itself is Perfox's file, not ours.
 _SPOKEN_NUMBER = re.compile(r"(?<![0-9])(?:[0-9][ -]?){9,}[0-9](?![0-9])")
@@ -109,7 +110,7 @@ def _scrub_spoken(text: str | None) -> str | None:
     text = pii.scrub_text(text)
     if text is None:
         return None
-    return _SPOKEN_NUMBER.sub(pii.PHONE_MARK, text)
+    return _SPOKEN_NUMBER.sub(lambda m: pii.mask_digits(m.group(0)), text)
 
 
 def _seconds(v: Any) -> int:
@@ -216,9 +217,9 @@ def list_calls():
             "name": pii.scrub_text((user.get("name") or "").strip() or None),
             # PII POLICY (2026-10-08): the caller's number is Perfox's record and
             # none of it is stored here, but this route hands it to every browser
-            # that opens the Calls page - so it is replaced on the way through.
-            # The name is kept; a phone or email in it is cut out.
-            "phone": pii.redact(user.get("phone")),
+            # that opens the Calls page - so it is masked on the way through
+            # (984*******). The name is kept; a phone or email in it is masked.
+            "phone": pii.mask_phone(user.get("phone")),
             "channel": c.get("channel"),
             "status": c.get("status"),
             "started_at": c.get("started_at"),

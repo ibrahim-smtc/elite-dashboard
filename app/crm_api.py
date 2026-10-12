@@ -67,13 +67,19 @@ class NewLeadPayload(BaseModel):
     model_of_interest: Optional[str] = None
     rating: Optional[str] = None
 
-    # PII POLICY (2026-10-08): the agent may still send the customer's phone
-    # and email - it is not an error to - but neither is stored. Replaced here,
-    # before the route ever sees them (etl/pii.py).
-    @field_validator("phone_number", "email")
+    # PII POLICY (2026-10-08, revised 2026-10-12): the agent may send the
+    # customer's phone and email, but only the masked forms are stored
+    # (984*******, rav***@gmail.com). Masked here, before the route ever sees
+    # them (etl/pii.py).
+    @field_validator("phone_number")
     @classmethod
     def _no_pii(cls, v):
-        return pii.redact(v)
+        return pii.mask_phone(v)
+
+    @field_validator("email")
+    @classmethod
+    def _no_email(cls, v):
+        return pii.mask_email(v)
 
     # A phone or email inside the name field is cut out; the name is kept.
     @field_validator("lead_name")
@@ -295,7 +301,7 @@ def fetch_leads_for_agent(payload: FetchLeadsPayload):
             params += extra
 
         if payload.search:
-            # PII POLICY (2026-10-08): name only - mobile holds [REDACTED].
+            # PII POLICY (2026-10-08): name only - mobile holds only a masked number.
             sql += " AND l.lead_name ILIKE %s"
             params.append(f"%{payload.search.strip()}%")
 
@@ -351,7 +357,7 @@ def fetch_bookings_for_agent(payload: FetchBookingsPayload):
             params.append(status)
 
         if payload.search:
-            # PII POLICY (2026-10-08): name only - mobile holds [REDACTED].
+            # PII POLICY (2026-10-08): name only - mobile holds only a masked number.
             sql += " AND b.customer_name ILIKE %s"
             params.append(f"%{payload.search.strip()}%")
 
@@ -414,8 +420,8 @@ def create_lead(lead: NewLeadPayload):
                     lead.lead_name,
                     # The payload has always called this phone_number while the
                     # column is `mobile`; the value used to be accepted and then
-                    # silently dropped. (Already [REDACTED] by the payload
-                    # validator above - PII policy 2026-10-08.)
+                    # silently dropped. (Already masked by the payload
+                    # validator above - PII policy, revised 2026-10-12.)
                     lead.phone_number,
                     lead.email,
                     lead.source_id if lead.source_id is not None

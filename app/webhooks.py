@@ -314,10 +314,11 @@ async def receive_enquiry(
                     f"Keys received: {sorted(flat)[:25]}"),
         )
 
-    # PII POLICY (2026-10-08): the phone and email are read above only to
-    # recognise the enquiry - from here on they exist only as [REDACTED], and a
-    # phone or email the customer typed into the subject or message is cut out
-    # of it (etl/pii.py). Nothing after this point sees the real values.
+    # PII POLICY (2026-10-08, revised 2026-10-12): the phone and email are read
+    # above only to recognise the enquiry - from here on they exist only masked
+    # (984*******, rav***@gmail.com), and a phone or email the customer typed
+    # into the subject or message is masked there too (etl/pii.py). Nothing
+    # after this point sees the full values.
     #
     # The retry guard used to compare the stored mobile number. With no number
     # stored that comparison would treat every phone-only enquiry in a ten
@@ -327,7 +328,7 @@ async def receive_enquiry(
     #      same delivery is caught here;
     #   2. after a restart, the stored name + (already scrubbed) message.
     delivery = _delivery_key(name, phone, email, subject, message)
-    phone, email = pii.redact(phone), pii.redact(email)
+    phone, email = pii.mask_phone(phone), pii.mask_email(email)
     # Some forms put the number or the email in the name field too.
     name = pii.scrub_text(name)
     subject, message, model = (pii.scrub_text(subject), pii.scrub_text(message),

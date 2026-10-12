@@ -34,14 +34,17 @@ powershell -File tools/pg.ps1 start
 python tools/sql.py -f db/schema.sql && python tools/sql.py -f db/triggers.sql && python tools/sql.py -f db/test_drives.sql && python tools/sql.py -f db/pii.sql && python -m etl.load_dsr && python tools/sql.py -f db/views.sql
 ```
 
-> **Customer PII is never stored (policy, 2026-10-08).** Phone numbers, email
-> addresses and postal addresses are replaced with `[REDACTED]` on every way
-> in — workbook, CSV, the forms, the agent APIs — by `etl/pii.py`, and again
-> by database triggers in `db/pii.sql` for anything that writes to the
-> database directly. Phones and emails typed inside notes or chat messages are
-> cut out of the text. Customer names are kept. To change the **live**
-> database, use `tools/migrate.py`, which dry-runs by default; existing rows are
-> cleaned with `db/pii_backfill.sql`.
+> **Customer PII is never stored in full (policy, 2026-10-08, revised
+> 2026-10-12).** Phone numbers are masked to their first three digits
+> (`984*******`), email addresses to the first three characters and the domain
+> (`rav***@gmail.com`), and postal addresses are replaced with `[REDACTED]` —
+> on every way in (workbook, CSV, the forms, the agent APIs) by `etl/pii.py`,
+> and again by database triggers in `db/pii.sql` for anything that writes to
+> the database directly. Phones and emails typed inside notes or chat messages
+> are masked the same way. Customer names are kept. Rows stored before
+> 2026-10-12 hold `[REDACTED]`; upload that month's workbook again to store
+> them masked. To change the **live** database, use `tools/migrate.py`, which
+> dry-runs by default; existing rows are handled by `db/pii_backfill.sql`.
 
 ```bash
 python run.py
@@ -244,7 +247,7 @@ row came from.
 | Endpoint | Answers |
 |---|---|
 | `GET /agent/availability?model=&variant=&colour=` | "Do you have a white Virtus GT Line AT?" Substring matching, so loose phrasing resolves. |
-| `GET /agent/order-status?name=` | "Where is my car?" Returns a stage: booked → awaiting stock → car allotted → invoiced → registered → delivered. Requires a name; it will not return the whole order book. (Lookup by `?mobile=` was removed under the PII policy, 2026-10-08 — phone numbers are not stored.) |
+| `GET /agent/order-status?name=` | "Where is my car?" Returns a stage: booked → awaiting stock → car allotted → invoiced → registered → delivered. Requires a name; it will not return the whole order book. (Lookup by `?mobile=` was removed under the PII policy, 2026-10-08 — only a masked phone number is stored.) |
 | `GET /agent/model-catalogue` | Models and trims the dealership actually transacts, with live free stock. |
 
 **Service agent** — internal:
@@ -317,10 +320,10 @@ Two more things worth knowing:
 DSR August 2026.xlsx        source workbook
 db/schema.sql               tables, enums, indexes, comments
 db/triggers.sql             change notification (pg_notify)
-db/pii.sql                  customer PII redaction triggers (policy 2026-10-08)
-db/pii_backfill.sql         one-off: redact PII already in the database
+db/pii.sql                  customer PII masking/redaction triggers (policy 2026-10-08, revised 10-12)
+db/pii_backfill.sql         one-off: mask/redact PII already in the database
 db/views.sql                analytical + agent views (re-runnable)
-etl/pii.py                  customer PII redaction, used by every ingestion path
+etl/pii.py                  customer PII masking/redaction, used by every ingestion path
 tools/migrate.py            apply SQL to the live DB in one transaction, dry run first
 etl/normalize.py            cleaning and canonicalisation
 etl/dimensions.py           dimension resolution, shared by loader and API
