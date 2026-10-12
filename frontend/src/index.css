@@ -2451,3 +2451,90 @@ tr:hover td { background: rgba(193, 67, 42, 0.035); }
 @media (max-width: 640px) {
   .colophon-meta { text-align: left; }
 }
+
+/* ---------------------------------------------------------------- drill-downs */
+/* A figure with records behind it is a button (OverviewDetail). It keeps the
+   tile's look exactly - the base button's box, centring and hover fill would
+   otherwise turn the instrument panel into a row of controls - and keeps the
+   tile's own hover: the rule warms, the figure lifts. */
+button.kpi-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--grid);
+  border-radius: 0;
+  padding: 16px 22px 20px 0;
+}
+button.kpi-tile:hover { background: transparent; border-top-color: var(--shu); }
+button.kpi-tile:active { transform: none; }
+button.kpi-tile:hover .label { color: var(--ink-2); }
+
+/* The hero's bookings figure, which opens the month's bookings. */
+.hero-link {
+  display: inline-flex;
+  padding: 0;
+  margin: 0;
+  gap: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+}
+.hero-link:hover { background: transparent; }
+.hero-link .hero-figure { display: inline-block; transition: transform var(--t-fast) var(--ease-out); }
+.hero-link:hover .hero-figure { transform: translateY(-1px); }
+
+.kpi-detail {
+  width: 100%;
+  max-width: 1040px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--axis);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  outline: none;
+}
+.kpi-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--grid);
+}
+.kpi-detail-line { font-size: var(--fs-small); color: var(--ink-muted); margin-top: 4px; }
+.kpi-detail-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 20px;
+}
+.kpi-detail-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-sub);
+  border: 1px solid var(--grid);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+}
+.kpi-detail-search input { border: none; background: transparent; padding: 2px; outline: none; min-width: 220px; }
+.kpi-detail .table-wrap { flex: 1; min-height: 0; overflow: auto; margin: 0 20px 18px; }
+.kpi-detail-error { margin: 14px 20px 20px; color: var(--critical); font-size: var(--fs-body); }
+@media (max-width: 560px) {
+  .kpi-detail-search { flex: 1; }
+  .kpi-detail-search input { min-width: 0; width: 100%; }
+}

@@ -26,6 +26,7 @@ import {
   ConsultantConversion, Attachments,
 } from './components/Analytics';
 import FolderTat from './components/FolderTat';
+import OverviewDetail from './components/OverviewDetail';
 import { fetchDashboardData, activatePeriod, DASHBOARD_CALLS } from './api/client';
 import { setupLiveEvents } from './api/liveEvents';
 
@@ -67,6 +68,9 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Which Overview figure has its records open, if any (OverviewDetail).
+  const [detail, setDetail] = useState(null);
+  const closeDetail = useCallback(() => setDetail(null), []);
   const [liveStatus, setLiveStatus] = useState({ state: 'off', text: 'connecting' });
   // When the figures on screen were last drawn. A screenshot of this sheet
   // travels - into Teams, into a deck - and the first question anyone asks of
@@ -257,9 +261,9 @@ function Dashboard() {
 
         {activeTab === 'overview' && (
           <>
-            <HeroMetric kpi={data?.kpi || {}} period={activePeriodObj}
+            <HeroMetric kpi={data?.kpi || {}} period={activePeriodObj} onOpen={setDetail}
                         trends={data?.trends || {}} />
-            <KpiTiles kpi={data?.kpi || {}} trends={data?.trends || {}} />
+            <KpiTiles kpi={data?.kpi || {}} trends={data?.trends || {}} onOpen={setDetail} />
             <div style={{ marginTop: 26 }}>
               <SalesFunnel funnel={data?.funnel || {}} />
             </div>
@@ -341,6 +345,8 @@ function Dashboard() {
       </main>
 
       {/* Overlays sit outside the sheet so the rail cannot clip them. */}
+      <OverviewDetail which={detail} data={data} period={activePeriodObj}
+                      onClose={closeDetail} />
       <PeriodManager
         isOpen={periodsOpen}
         periods={data?.periods || []}

@@ -61,7 +61,7 @@ function Meter({ share, color = 'var(--viz-1)' }) {
 
 const num = v => (v == null ? 0 : Number(v));
 
-export default function KpiTiles({ kpi = {}, trends = {} }) {
+export default function KpiTiles({ kpi = {}, trends = {}, onOpen }) {
   const retails = num(kpi.retails);
   const retailTarget = num(kpi.retail_target);
   const enquiries = num(kpi.enquiries);
@@ -86,12 +86,14 @@ export default function KpiTiles({ kpi = {}, trends = {} }) {
   const tiles = [
     {
       label: 'Retails Delivered',
+      detail: 'retails',
       value: retails,
       share: share(retails, retailTarget),
       foot: ofTarget(retails, retailTarget),
     },
     {
       label: 'Total Enquiries',
+      detail: 'enquiries',
       value: enquiries,
       share: share(enquiries, leadsTarget),
       spark: trends.enquiries,
@@ -101,12 +103,14 @@ export default function KpiTiles({ kpi = {}, trends = {} }) {
     },
     {
       label: 'Test Drives',
+      detail: 'test_drives',
       value: testDrives,
       share: share(testDrives, tdTarget),
       foot: ofTarget(testDrives, tdTarget),
     },
     {
       label: 'Booking Revenue',
+      detail: 'bookings',
       value: num(kpi.booking_amount_collected),
       format: money,
       spark: trends.bookings,
@@ -115,12 +119,14 @@ export default function KpiTiles({ kpi = {}, trends = {} }) {
     },
     {
       label: 'Free Stock',
+      detail: 'free_stock',
       value: free,
       share: share(free, onFloor),
       foot: `of ${n0(onFloor)} on the floor · ${n0(allotted)} allotted`,
     },
     {
       label: 'Enquiry to Booking',
+      detail: 'conversion',
       value: conversion,
       format: pct,
       share: conversion,
@@ -128,6 +134,7 @@ export default function KpiTiles({ kpi = {}, trends = {} }) {
     },
     {
       label: 'Backorders',
+      detail: 'backorders',
       value: backorders,
       share: share(backorders, bookings),
       color: 'var(--warning)',
@@ -135,6 +142,7 @@ export default function KpiTiles({ kpi = {}, trends = {} }) {
     },
     {
       label: 'Pending CRM Punch',
+      detail: 'crm_pending',
       value: pending,
       share: share(pending, bookings),
       color: pending > 0 ? 'var(--critical)' : 'var(--good)',
@@ -145,20 +153,31 @@ export default function KpiTiles({ kpi = {}, trends = {} }) {
 
   return (
     <div className="grid-tiles">
-      {tiles.map(t => (
-        <div key={t.label} className="kpi-tile">
-          <div className="label">{t.label}</div>
-          <div className="val"><Figure value={t.value} format={t.format || n0} /></div>
-          <div className="kpi-plot">
-            {t.spark
-              ? <Spark series={t.spark} color={t.sparkColor || 'var(--viz-1)'} />
-              : t.share != null
-                ? <Meter share={t.share} color={t.color || 'var(--viz-1)'} />
-                : null}
-          </div>
-          <div className={`sub ${t.tone === 'alert' ? 'alert' : ''}`}>{t.foot}</div>
-        </div>
-      ))}
+      {tiles.map(t => {
+        const body = (
+          <>
+            <div className="label">{t.label}</div>
+            <div className="val"><Figure value={t.value} format={t.format || n0} /></div>
+            <div className="kpi-plot">
+              {t.spark
+                ? <Spark series={t.spark} color={t.sparkColor || 'var(--viz-1)'} />
+                : t.share != null
+                  ? <Meter share={t.share} color={t.color || 'var(--viz-1)'} />
+                  : null}
+            </div>
+            <div className={`sub ${t.tone === 'alert' ? 'alert' : ''}`}>{t.foot}</div>
+          </>
+        );
+        // A figure with records behind it opens them (OverviewDetail).
+        return onOpen && t.detail ? (
+          <button key={t.label} type="button" className="kpi-tile" aria-haspopup="dialog"
+                  title={`Show what is behind ${t.label}`} onClick={() => onOpen(t.detail)}>
+            {body}
+          </button>
+        ) : (
+          <div key={t.label} className="kpi-tile">{body}</div>
+        );
+      })}
     </div>
   );
 }

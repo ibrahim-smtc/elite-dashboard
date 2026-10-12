@@ -743,6 +743,75 @@ def folder_tat():
     }
 
 
+# The rows behind two of the Overview's figures, which the dashboard's own data
+# does not carry. The other figures' rows - the month's bookings, backorders,
+# free stock and scorecards - already come with /api/dashboard.
+
+@app.get("/api/retails", tags=["dashboard"])
+def overview_retails():
+    """
+    The cars behind Retails Delivered: the month the dashboard is set to,
+    counted as its headline counts them (v_sales_funnel) - the registrations
+    that month's workbook listed, plus any entered by hand during it - so the
+    list is the figure, car for car.
+    """
+    if not is_db_ready():
+        return {"rows": [], "error": "The database is not reachable."}
+    try:
+        rows = fetch_all("""
+            SELECT r.registration_id, r.customer_name, co.display_name AS consultant,
+                   m.name AS model, dv.name AS variant, dc.name AS colour, r.chassis_number,
+                   r.nadcon_retail_date, r.registration_date, r.delivery_date,
+                   r.finance_type, r.bank, r.has_insurance, r.has_extended_warranty,
+                   r.is_corporate
+              FROM registration r
+              JOIN dim_period ap          ON ap.is_active
+              LEFT JOIN dim_consultant co ON co.consultant_id = r.consultant_id
+              LEFT JOIN vehicle v         ON v.vehicle_id = r.vehicle_id
+              LEFT JOIN dim_model m       ON m.model_id = v.model_id
+              LEFT JOIN dim_variant dv    ON dv.variant_id = v.variant_id
+              LEFT JOIN dim_colour dc     ON dc.colour_id = v.colour_id
+             WHERE r.status = 'REGISTERED'
+               AND (r.load_period_id = ap.period_id
+                    OR (r.load_period_id IS NULL
+                        AND (r.loaded_at AT TIME ZONE 'Asia/Kolkata')::date
+                            BETWEEN ap.period_start AND ap.period_end))
+             ORDER BY r.nadcon_retail_date DESC NULLS LAST, r.customer_name
+        """)
+    except Exception:
+        log.exception("retails list failed")
+        return {"rows": [], "error": "The retails could not be read."}
+    return {"rows": rows}
+
+
+@app.get("/api/enquiries", tags=["dashboard"])
+def overview_enquiries():
+    """
+    The enquiries behind Total Enquiries: the month the dashboard is set to,
+    as the headline counts them (lead.is_current_period), newest first. No
+    phone numbers - the list is for reading the month, not for calling.
+    """
+    if not is_db_ready():
+        return {"rows": [], "error": "The database is not reachable."}
+    try:
+        rows = fetch_all("""
+            SELECT l.lead_id, l.lead_name, coalesce(s.channel::text, 'Not recorded') AS channel,
+                   s.name AS source, coalesce(m.family, l.model_of_interest) AS model,
+                   co.display_name AS consultant, l.lead_status, l.qualified_stage,
+                   l.rating, l.created_at
+              FROM lead l
+              LEFT JOIN dim_lead_source s ON s.source_id = l.source_id
+              LEFT JOIN dim_model m       ON m.model_id = l.model_id
+              LEFT JOIN dim_consultant co ON co.consultant_id = l.consultant_id
+             WHERE l.is_current_period
+             ORDER BY l.created_at DESC NULLS LAST, l.lead_id DESC
+        """)
+    except Exception:
+        log.exception("enquiries list failed")
+        return {"rows": [], "error": "The enquiries could not be read."}
+    return {"rows": rows}
+
+
 @app.get("/api/composition", tags=["dashboard"])
 def composition(period: str | None = Query(None, description="Month label; defaults to the active one")):
     """

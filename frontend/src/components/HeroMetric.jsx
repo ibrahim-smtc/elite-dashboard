@@ -87,7 +87,7 @@ const MIN_PACE_DAYS = 3;
 /* Within a tenth of the mark is near, not failing. */
 const NEAR = 0.9;
 
-export default function HeroMetric({ kpi = {}, period = {}, trends = {} }) {
+export default function HeroMetric({ kpi = {}, period = {}, trends = {}, onOpen }) {
   const bookings = Number(kpi.bookings || 0);
   const target = Number(kpi.booking_target || 0);
   const ratio = target > 0 ? (bookings / target) * 100 : 0;
@@ -156,7 +156,14 @@ export default function HeroMetric({ kpi = {}, period = {}, trends = {} }) {
 
       <div className="hero-row">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-          <Figure className="hero-figure" value={bookings} format={n0} />
+          {onOpen ? (
+            <button type="button" className="hero-link" aria-haspopup="dialog"
+                    title="Show this month's bookings" onClick={() => onOpen('bookings')}>
+              <Figure className="hero-figure" value={bookings} format={n0} />
+            </button>
+          ) : (
+            <Figure className="hero-figure" value={bookings} format={n0} />
+          )}
           {target > 0 && <span className="hero-of">/ {n0(target)}</span>}
         </div>
 
