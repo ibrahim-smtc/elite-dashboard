@@ -132,15 +132,6 @@ const DETAILS = {
     line: (rows, month) => `${plural(rows.length, 'enquiry', 'enquiries')} in ${month}, `
       + `${n0(rows.filter(r => r.qualified_stage === 'Qualified').length)} qualified`,
   },
-  allotted: {
-    title: 'Allotted, awaiting retail',
-    rows: d => (d.orderbook || []).filter(b => b.fulfilment_status === 'ALLOTED'),
-    columns: BOOKING_COLUMNS,
-    file: 'allotted-awaiting-retail',
-    rowKey: r => r.booking_id,
-    empty: 'None of this month’s bookings is waiting with a car allotted.',
-    line: (rows, month) => `${plural(rows.length, 'booking')} from ${month} with a car allotted, not yet retailed`,
-  },
   bookings: {
     title: 'Bookings',
     rows: d => d.orderbook || [],

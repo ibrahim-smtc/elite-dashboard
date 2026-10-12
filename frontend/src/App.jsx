@@ -263,8 +263,7 @@ function Dashboard() {
           <>
             <HeroMetric kpi={data?.kpi || {}} period={activePeriodObj} onOpen={setDetail}
                         trends={data?.trends || {}} />
-            <KpiTiles kpi={data?.kpi || {}} trends={data?.trends || {}}
-                      orderbook={data?.orderbook || []} onOpen={setDetail} />
+            <KpiTiles kpi={data?.kpi || {}} trends={data?.trends || {}} onOpen={setDetail} />
             <div style={{ marginTop: 26 }}>
               <SalesFunnel funnel={data?.funnel || {}} />
             </div>

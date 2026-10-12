@@ -61,7 +61,7 @@ function Meter({ share, color = 'var(--viz-1)' }) {
 
 const num = v => (v == null ? 0 : Number(v));
 
-export default function KpiTiles({ kpi = {}, trends = {}, orderbook = [], onOpen }) {
+export default function KpiTiles({ kpi = {}, trends = {}, onOpen }) {
   const retails = num(kpi.retails);
   const retailTarget = num(kpi.retail_target);
   const enquiries = num(kpi.enquiries);
@@ -71,9 +71,6 @@ export default function KpiTiles({ kpi = {}, trends = {}, orderbook = [], onOpen
   const onFloor = free + allotted;
   const bookings = num(kpi.bookings);
   const backorders = num(kpi.backorders);
-  // The month's bookings with a car allotted and not yet retailed: the next
-  // retails. It took the place of Test Drives, taken off the Overview.
-  const awaiting = orderbook.filter(b => b.fulfilment_status === 'ALLOTED').length;
 
   const share = (part, whole) => (whole > 0 ? (part / whole) * 100 : 0);
   // How many enquiries became bookings. It took the place of ageing stock,
@@ -100,13 +97,6 @@ export default function KpiTiles({ kpi = {}, trends = {}, orderbook = [], onOpen
       foot: leadsTarget > 0
         ? `${pct(share(enquiries, leadsTarget))} of ${n0(leadsTarget)} · ${n0(kpi.qualified)} qualified`
         : `No target set · ${n0(kpi.qualified)} qualified`,
-    },
-    {
-      label: 'Allotted, Awaiting Retail',
-      detail: 'allotted',
-      value: awaiting,
-      share: share(awaiting, bookings),
-      foot: `${pct(share(awaiting, bookings))} of bookings have a car, not yet retailed`,
     },
     {
       label: 'Booking Revenue',
