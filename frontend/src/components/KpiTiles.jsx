@@ -71,7 +71,6 @@ export default function KpiTiles({ kpi = {}, trends = {}, orderbook = [], onOpen
   const onFloor = free + allotted;
   const bookings = num(kpi.bookings);
   const backorders = num(kpi.backorders);
-  const pending = num(kpi.bookings_missing_crm_entry);
   // The month's bookings with a car allotted and not yet retailed: the next
   // retails. It took the place of Test Drives, taken off the Overview.
   const awaiting = orderbook.filter(b => b.fulfilment_status === 'ALLOTED').length;
@@ -140,15 +139,6 @@ export default function KpiTiles({ kpi = {}, trends = {}, orderbook = [], onOpen
       share: share(backorders, bookings),
       color: 'var(--warning)',
       foot: `${pct(share(backorders, bookings))} of bookings await a car`,
-    },
-    {
-      label: 'Pending CRM Punch',
-      detail: 'crm_pending',
-      value: pending,
-      share: share(pending, bookings),
-      color: pending > 0 ? 'var(--critical)' : 'var(--good)',
-      foot: `${pct(share(pending, bookings))} of bookings not in VW systems`,
-      tone: pending > 0 ? 'alert' : 'normal',
     },
   ];
 

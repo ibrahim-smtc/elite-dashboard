@@ -183,15 +183,6 @@ const DETAILS = {
     empty: 'None of this month’s bookings is waiting for a car.',
     line: (rows, month) => `${plural(rows.length, 'booking')} from ${month} waiting for a car`,
   },
-  crm_pending: {
-    title: 'Pending CRM punch',
-    rows: d => (d.orderbook || []).filter(b => b.crm_entry_done === false),
-    columns: BOOKING_COLUMNS,
-    file: 'pending-crm-punch',
-    rowKey: r => r.booking_id,
-    empty: 'Every booking this month is in the CRM.',
-    line: (rows, month) => `${plural(rows.length, 'booking')} from ${month} not yet entered in the CRM`,
-  },
 };
 
 /* "September 2026", from the month the dashboard is set to. */
