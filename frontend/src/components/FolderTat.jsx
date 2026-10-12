@@ -12,13 +12,14 @@
  * dates the wrong way round - averaging it in turned a real 0.2 days into
  * -0.1, paperwork arriving before it exists.
  *
- * Shown was not the same as findable. The warning said the offending files
- * were listed below while the table stayed in date order and cut off at ten,
- * which put September's one impossible file at row seventeen of thirty-five,
- * behind a "show all" button - the banner pointed somewhere the table did not
- * go. Flagged files now sort to the top, and the two dates that disagree are
- * marked rather than only the days between them, because those two cells are
- * what somebody has to go and correct in the workbook.
+ * Shown was not the same as findable. In date order and cut off at ten, the
+ * table put September's one impossible file at row seventeen of thirty-five,
+ * behind a "show all" button. Flagged files now sort to the top, and the two
+ * dates that disagree are marked rather than only the days between them,
+ * because those two cells are what somebody has to go and correct in the
+ * workbook. The note that used to sit above the table saying so was taken
+ * off at the dealership's request; the marked row and the average leaving it
+ * out are unchanged.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -96,17 +97,6 @@ export default function FolderTat() {
             <Stat label="Over 3 days" value={n0(data.over_3_days)}
                   tone={data.over_3_days > 0 ? 'bad' : undefined} />
           </div>
-
-          {data.impossible > 0 && (
-            <p style={{
-              margin: '0 0 14px', fontSize: 'var(--fs-small)', lineHeight: 1.5,
-              color: 'var(--ink-muted)',
-            }}>
-              {data.impossible === 1
-                ? '1 file reached accounts before it was lined up, so its dates are the wrong way round. It is listed first in red and left out of the average.'
-                : `${n0(data.impossible)} files reached accounts before they were lined up, so their dates are the wrong way round. They are listed first in red and left out of the average.`}
-            </p>
-          )}
 
           <div className="table-wrap">
             <table>
