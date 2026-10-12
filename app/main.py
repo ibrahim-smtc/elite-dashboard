@@ -689,12 +689,22 @@ def folder_tat():
         return {"rows": [], "total": 0, "with_dates": 0, "avg_days": None,
                 "over_3_days": 0}
     try:
+        # The month the dashboard is set to, counted as its retails are: the
+        # registrations that month's workbook listed, plus any entered by hand
+        # during it. Read over every load, August's page listed 35 files -
+        # September's 17 with its own 18 - beside "18 retails".
         rows = fetch_all("""
-            SELECT registration_id, customer_name, consultant, registration_no,
-                   folder_lined_up_on, folder_given_to_accounts_on,
-                   days_to_accounts, booking_to_registration_days
-              FROM v_folder_tat
-             ORDER BY folder_lined_up_on DESC NULLS LAST, registration_id DESC
+            SELECT t.registration_id, t.customer_name, t.consultant, t.registration_no,
+                   t.folder_lined_up_on, t.folder_given_to_accounts_on,
+                   t.days_to_accounts, t.booking_to_registration_days
+              FROM v_folder_tat t
+              JOIN registration r ON r.registration_id = t.registration_id
+              JOIN dim_period ap  ON ap.is_active
+             WHERE r.load_period_id = ap.period_id
+                OR (r.load_period_id IS NULL
+                    AND (r.loaded_at AT TIME ZONE 'Asia/Kolkata')::date
+                        BETWEEN ap.period_start AND ap.period_end)
+             ORDER BY t.folder_lined_up_on DESC NULLS LAST, t.registration_id DESC
         """)
     except Exception:
         log.exception("folder tat failed")
