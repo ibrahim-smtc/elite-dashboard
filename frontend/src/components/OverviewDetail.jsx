@@ -66,25 +66,6 @@ const ENQUIRY_COLUMNS = [
   dateColumn('created_at', 'Came in'),
 ];
 
-const TEST_DRIVE_COLUMNS = [
-  { key: 'consultant', label: 'Consultant', strong: true },
-  { key: 'team', label: 'Team', muted: true },
-  {
-    key: 'td_achieved', label: 'Test drives', num: true, strong: true,
-    sortAs: r => num(r.td_achieved), render: r => n0(num(r.td_achieved)),
-  },
-  {
-    key: 'td_target', label: 'Target', num: true,
-    sortAs: r => num(r.td_target), render: r => (r.td_target == null ? '–' : n0(num(r.td_target))),
-  },
-  {
-    key: 'td_share', label: 'Of target', num: true,
-    sortAs: r => share(num(r.td_achieved), num(r.td_target)) ?? -1,
-    render: r => pct(share(num(r.td_achieved), num(r.td_target))),
-    value: r => txt(pct(share(num(r.td_achieved), num(r.td_target)))),
-  },
-];
-
 const CONVERSION_COLUMNS = [
   { key: 'channel', label: 'Source', strong: true },
   { key: 'enquiries', label: 'Enquiries', num: true, sortAs: r => r.enquiries, render: r => n0(r.enquiries) },
@@ -151,17 +132,14 @@ const DETAILS = {
     line: (rows, month) => `${plural(rows.length, 'enquiry', 'enquiries')} in ${month}, `
       + `${n0(rows.filter(r => r.qualified_stage === 'Qualified').length)} qualified`,
   },
-  test_drives: {
-    title: 'Test drives by consultant',
-    rows: d => (d.scorecards || [])
-      .filter(s => s.row_kind === 'CONSULTANT' && (num(s.td_achieved) || num(s.td_target)))
-      .sort((a, b) => num(b.td_achieved) - num(a.td_achieved)),
-    columns: TEST_DRIVE_COLUMNS,
-    file: 'test-drives-by-consultant',
-    rowKey: (r, i) => `${r.consultant}-${i}`,
-    empty: 'No scorecard has been loaded for this month.',
-    line: (rows, month) => `${plural(sum(rows, 'td_achieved'), 'test drive')} in ${month}, `
-      + 'from the DSR scorecard',
+  allotted: {
+    title: 'Allotted, awaiting retail',
+    rows: d => (d.orderbook || []).filter(b => b.fulfilment_status === 'ALLOTED'),
+    columns: BOOKING_COLUMNS,
+    file: 'allotted-awaiting-retail',
+    rowKey: r => r.booking_id,
+    empty: 'None of this month’s bookings is waiting with a car allotted.',
+    line: (rows, month) => `${plural(rows.length, 'booking')} from ${month} with a car allotted, not yet retailed`,
   },
   bookings: {
     title: 'Bookings',
