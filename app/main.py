@@ -33,6 +33,8 @@ from .webhooks import router as webhooks_router
 from .calls import router as calls_router
 from .test_drives import router as test_drives_router  # prototype
 from .mcp_server import router as mcp_router
+from .auth import gate as auth_gate, router as auth_router
+from .pii_reveal import router as pii_reveal_router
 from .events import broker
 
 log = logging.getLogger("dsr.main")
@@ -102,6 +104,12 @@ app.include_router(calls_router)
 app.include_router(test_drives_router)
 # The Perfox "Dashboard Insights" agent's tool surface.
 app.include_router(mcp_router)
+# ROLE-BASED ACCESS (2026-10-13): sign-in (Supabase Auth), and the manager-only
+# reveal of a customer's phone/email. The middleware puts every dashboard API
+# call behind sign-in; the agent's routes stay open - see app/auth.py.
+app.include_router(auth_router)
+app.include_router(pii_reveal_router)
+app.middleware("http")(auth_gate)
 
 
 # =====================================================================

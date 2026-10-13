@@ -15,6 +15,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Download } from 'lucide-react';
 import { api, dt, money, n0, pct } from '../api/client';
+import { useAuth, isManager, contactColumn } from '../auth';
 import useClosing from './useClosing';
 import {
   BACKORDER_COLUMNS, BOOKING_COLUMNS, RecordTable, downloadCsv, txt, useRecordView,
@@ -119,6 +120,7 @@ const DETAILS = {
     columns: RETAIL_COLUMNS,
     file: 'retails',
     rowKey: r => r.registration_id,
+    revealTable: 'registration',
     empty: 'No retails recorded for this month.',
     line: (rows, month) => `${plural(rows.length, 'car')} retailed in ${month}`,
   },
@@ -128,6 +130,7 @@ const DETAILS = {
     columns: ENQUIRY_COLUMNS,
     file: 'enquiries',
     rowKey: r => r.lead_id,
+    revealTable: 'lead',
     empty: 'No enquiries recorded for this month.',
     line: (rows, month) => `${plural(rows.length, 'enquiry', 'enquiries')} in ${month}, `
       + `${n0(rows.filter(r => r.qualified_stage === 'Qualified').length)} qualified`,
@@ -138,6 +141,7 @@ const DETAILS = {
     columns: BOOKING_COLUMNS,
     file: 'bookings',
     rowKey: r => r.booking_id,
+    revealTable: 'booking',
     empty: 'No bookings recorded for this month.',
     line: (rows, month) => `${plural(rows.length, 'booking')} in ${month} · `
       + `${money(sum(rows, 'booking_amount'))} collected in advances`,
@@ -171,6 +175,7 @@ const DETAILS = {
     columns: BACKORDER_COLUMNS.filter(c => c.key !== 'is_current_period'),
     file: 'backorders',
     rowKey: r => r.booking_id,
+    revealTable: 'booking',
     empty: 'None of this month’s bookings is waiting for a car.',
     line: (rows, month) => `${plural(rows.length, 'booking')} from ${month} waiting for a car`,
   },
@@ -184,7 +189,17 @@ function monthName(period) {
 }
 
 function DetailBody({ spec, rows, loading, error, month, onClose }) {
-  const { query, setQuery, sort, toggleSort, visible } = useRecordView(rows, spec.columns);
+  // ROLE-BASED ACCESS (2026-10-13): a manager gets a Contact column with a
+  // "Show" per customer (app/pii_reveal.py); nobody else sees the column.
+  const { user } = useAuth();
+  const columns = useMemo(
+    // Right after the customer's name: these tables are wider than the panel,
+    // and a last column would sit off the right edge.
+    () => (isManager(user) && spec.revealTable
+      ? [spec.columns[0], contactColumn(spec.revealTable, spec.rowKey), ...spec.columns.slice(1)]
+      : spec.columns),
+    [user, spec]);
+  const { query, setQuery, sort, toggleSort, visible } = useRecordView(rows, columns);
   return (
     <>
       <div className="kpi-detail-head">
@@ -213,13 +228,13 @@ function DetailBody({ spec, rows, loading, error, month, onClose }) {
                 aria-label={`Search ${spec.title}`}
               />
             </label>
-            <button onClick={() => downloadCsv(spec.columns, visible, spec.file)}
+            <button onClick={() => downloadCsv(columns, visible, spec.file)}
                     disabled={!visible.length} title="Download what is shown as CSV">
               <Download size={14} />
               <span>Export</span>
             </button>
           </div>
-          <RecordTable columns={spec.columns} rows={visible} sort={sort} onSort={toggleSort}
+          <RecordTable columns={columns} rows={visible} sort={sort} onSort={toggleSort}
                        empty={loading ? 'Reading the records…' : spec.empty} query={query}
                        rowKey={spec.rowKey} maxHeight="none" />
         </>

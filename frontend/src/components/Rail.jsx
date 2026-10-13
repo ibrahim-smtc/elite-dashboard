@@ -11,9 +11,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   PlusCircle, UserPlus, Compass, KeyRound, UploadCloud, Download,
-  RefreshCw, Table, Sun, Moon, Headset, CalendarCog, ChevronDown
+  RefreshCw, Table, Sun, Moon, Headset, CalendarCog, ChevronDown, LogOut
 } from 'lucide-react';
 import { connection, justUpdated, CONNECTION } from './connection';
+import { useAuth } from '../auth';
 
 const ENTRIES = [
   { tab: 'booking', label: 'New booking', Icon: PlusCircle },
@@ -53,6 +54,7 @@ export default function Rail({
   theme,
   onToggleTheme,
 }) {
+  const { user, signOut } = useAuth();
   const [recordOpen, setRecordOpen] = useState(rememberedOpen);
   const recordRef = useRef(null);
   const triggerRef = useRef(null);
@@ -229,6 +231,14 @@ export default function Rail({
           {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
           <span>{theme === 'dark' ? 'Light sheet' : 'Night sheet'}</span>
         </button>
+        {/* ROLE-BASED ACCESS (2026-10-13): who is signed in, and the way out. */}
+        {user && (
+          <button className="rail-btn rail-quiet" onClick={signOut}
+                  title={`Signed in as ${user.email} (${user.role})`}>
+            <LogOut size={13} />
+            <span>Sign out · {user.role === 'manager' ? 'Manager' : 'Employee'}</span>
+          </button>
+        )}
       </div>
     </aside>
   );

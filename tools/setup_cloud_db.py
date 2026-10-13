@@ -61,6 +61,10 @@ def main():
                 # and skips any table that does not exist yet.
                 print("   Applying db/pii.sql (customer PII redaction triggers)...")
                 cur.execute((ROOT / "db" / "pii.sql").read_text(encoding="utf-8"))
+                # ROLE-BASED ACCESS (2026-10-13): who may sign in, the reveal log,
+                # and the decrypt function a manager's reveal uses. After pii.sql.
+                print("   Applying db/auth.sql (dashboard sign-in roles, reveal log)...")
+                cur.execute((ROOT / "db" / "auth.sql").read_text(encoding="utf-8"))
 
         os.environ["DATABASE_URL"] = dsn
 

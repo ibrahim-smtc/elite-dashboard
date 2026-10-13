@@ -18,3 +18,5 @@ httpx>=0.27
 google-api-python-client>=2.0.0
 google-auth-httplib2>=0.1.0
 google-auth-oauthlib>=1.0.0
+# Dashboard sign-in (app/auth.py): verifies Supabase Auth's ES256-signed tokens.
+PyJWT[crypto]>=2.8

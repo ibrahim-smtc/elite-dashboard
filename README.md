@@ -31,7 +31,7 @@ powershell -File tools/pg.ps1 start
 ```
 
 ```bash
-python tools/sql.py -f db/schema.sql && python tools/sql.py -f db/triggers.sql && python tools/sql.py -f db/test_drives.sql && python tools/sql.py -f db/pii.sql && python -m etl.load_dsr && python tools/sql.py -f db/views.sql
+python tools/sql.py -f db/schema.sql && python tools/sql.py -f db/triggers.sql && python tools/sql.py -f db/test_drives.sql && python tools/sql.py -f db/pii.sql && python tools/sql.py -f db/auth.sql && python -m etl.load_dsr && python tools/sql.py -f db/views.sql
 ```
 
 > **Customer PII is never stored readable (policy, 2026-10-08, revised
@@ -50,6 +50,18 @@ python tools/sql.py -f db/schema.sql && python tools/sql.py -f db/triggers.sql &
 > `[REDACTED]`); upload that month's workbook again to store them encrypted.
 > To change the **live** database, use `tools/migrate.py`, which dry-runs by
 > default.
+
+> **Sign-in and roles (2026-10-13).** The dashboard is behind a sign-in page.
+> Accounts are Supabase Auth users (Supabase > Authentication > Users); which
+> of them may sign in, and as what, is the list in `dsr.dashboard_user`
+> (`python tools/dashboard_users.py add <email> manager|employee`). A
+> **manager** sees a *Show* button on the Overview's enquiry, booking and
+> retail lists that reveals one customer's phone and email - decrypted on the
+> server with `PII_PRIVATE_KEY`, and logged in `dsr.pii_reveal_log`. An
+> **employee** sees masks only. The server needs `SUPABASE_ANON_KEY` and
+> `PII_PRIVATE_KEY` (see `.env.example`). The Perfox agent's routes (`/mcp`,
+> `/api/crm/*`, `/api/webhooks/*`, `/agent/*`) stay open and return masks
+> only.
 
 ```bash
 python run.py
@@ -330,6 +342,9 @@ db/pii_backfill.sql         one-off: mask/redact PII already in the database
 db/views.sql                analytical + agent views (re-runnable)
 etl/pii.py                  customer PII masking/redaction, used by every ingestion path
 tools/pii_keys.py           the encryption key pair: generate, install the public key, admin reveal
+tools/dashboard_users.py    who may sign in to the dashboard, as manager or employee
+app/auth.py                 sign-in (Supabase Auth) and roles; app/pii_reveal.py the manager's reveal
+db/auth.sql                 sign-in roles, the reveal audit log, the decrypt function
 tools/migrate.py            apply SQL to the live DB in one transaction, dry run first
 etl/normalize.py            cleaning and canonicalisation
 etl/dimensions.py           dimension resolution, shared by loader and API

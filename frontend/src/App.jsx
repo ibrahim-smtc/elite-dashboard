@@ -27,6 +27,7 @@ import {
 } from './components/Analytics';
 import FolderTat from './components/FolderTat';
 import OverviewDetail from './components/OverviewDetail';
+import { AuthGate } from './auth';
 import { fetchDashboardData, activatePeriod, DASHBOARD_CALLS } from './api/client';
 import { setupLiveEvents } from './api/liveEvents';
 
@@ -413,7 +414,10 @@ export default function App() {
     // import.meta.env.BASE_URL is '/static/' in both, so it cannot be used
     // directly; DEV is the thing that actually differs.
     <BrowserRouter basename={import.meta.env.DEV ? '/static' : '/'}>
-      <Dashboard />
+      {/* ROLE-BASED ACCESS (2026-10-13): sign in first - see src/auth.jsx. */}
+      <AuthGate>
+        <Dashboard />
+      </AuthGate>
     </BrowserRouter>
   );
 }

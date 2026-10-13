@@ -3,8 +3,15 @@
  * Connects to FastAPI backend and Supabase cloud database.
  */
 
+// ROLE-BASED ACCESS (2026-10-13): every dashboard call needs a signed-in
+// account; a 401 means the session ended, and src/auth.jsx shows sign-in again.
+function signedOut(res) {
+  if (res.status === 401) window.dispatchEvent(new Event('eds:auth-required'));
+}
+
 export async function api(path) {
   const res = await fetch(path);
+  signedOut(res);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || `${res.status} ${res.statusText}`);
@@ -18,6 +25,7 @@ export async function sendJson(method, path, body) {
     headers: { "Content-Type": "application/json" },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+  signedOut(res);
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     const detail = data && data.detail;

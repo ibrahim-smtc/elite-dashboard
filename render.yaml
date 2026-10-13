@@ -25,3 +25,9 @@ services:
         sync: false
       - key: PERFOX_API_KEY
         sync: false
+      # Dashboard sign-in (app/auth.py): the project's public API key.
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      # A manager's reveal (app/pii_reveal.py): the PRIVATE key. A secret.
+      - key: PII_PRIVATE_KEY
+        sync: false
