@@ -15,7 +15,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Download } from 'lucide-react';
 import { api, dt, money, n0, pct } from '../api/client';
-import { useAuth, isManager, contactColumn } from '../auth';
+import { useAuth, isManager, contactColumn, useAvailableContacts } from '../auth';
 import useClosing from './useClosing';
 import {
   BACKORDER_COLUMNS, BOOKING_COLUMNS, RecordTable, downloadCsv, txt, useRecordView,
@@ -192,13 +192,17 @@ function DetailBody({ spec, rows, loading, error, month, onClose }) {
   // ROLE-BASED ACCESS (2026-10-13): a manager gets a Contact column with a
   // "Show" per customer (app/pii_reveal.py); nobody else sees the column.
   const { user } = useAuth();
+  const ids = useMemo(
+    () => (isManager(user) && spec.revealTable ? rows.map(spec.rowKey).filter(Number.isInteger) : []),
+    [user, spec, rows]);
+  const available = useAvailableContacts(isManager(user) ? spec.revealTable : null, ids);
   const columns = useMemo(
     // Right after the customer's name: these tables are wider than the panel,
     // and a last column would sit off the right edge.
     () => (isManager(user) && spec.revealTable
-      ? [spec.columns[0], contactColumn(spec.revealTable, spec.rowKey), ...spec.columns.slice(1)]
+      ? [spec.columns[0], contactColumn(spec.revealTable, spec.rowKey, available), ...spec.columns.slice(1)]
       : spec.columns),
-    [user, spec]);
+    [user, spec, available]);
   const { query, setQuery, sort, toggleSort, visible } = useRecordView(rows, columns);
   return (
     <>

@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .auth import require_manager
 from .db import session
@@ -56,6 +56,29 @@ def private_key() -> str:
             raise HTTPException(503, "PII_PRIVATE_KEY is not a usable key.") from exc
     # Some hosts store a pasted multi-line value with literal "\n".
     return raw.replace("\\n", "\n")
+
+
+class AvailableIn(BaseModel):
+    table: Literal["lead", "booking", "registration"]
+    ids: list[int] = Field(default_factory=list, max_length=5000)
+
+
+@router.post("/available")
+def available(body: AvailableIn, user: dict = Depends(require_manager)):
+    """
+    Which of these records have a full phone or email stored (encrypted) - so
+    the dashboard offers "Show" only where there is something to show, instead
+    of a button that answers "not on record". Returns only record ids, never
+    a value, and nothing is decrypted.
+    """
+    rel, pk, fields = TABLES[body.table]
+    has = " OR ".join(f"{col}_enc IS NOT NULL" for _, col in fields)
+    if not body.ids:
+        return {"ids": []}
+    with session() as cx:
+        rows = cx.execute(f"SELECT {pk} AS id FROM {rel} WHERE {pk} = ANY(%s) AND ({has})",
+                          (body.ids,)).fetchall()
+    return {"ids": [r["id"] for r in rows]}
 
 
 class RevealIn(BaseModel):

@@ -208,10 +208,35 @@ export function RevealContact({ table, id }) {
 
 /* A records-table column with the reveal in it - managers only. Its value is
    empty, so search, sort and CSV export never carry a revealed contact. */
-export function contactColumn(table, rowId) {
+export function contactColumn(table, rowId, available) {
   return {
     key: '_contact', label: 'Contact',
-    render: r => <RevealContact table={table} id={rowId(r)} />,
+    render: r => {
+      if (available == null) return <span style={{ color: 'var(--ink-muted)' }}>…</span>;
+      // Only a record with a full phone/email stored gets a Show; the rest
+      // were saved before encryption began, or never had a contact.
+      return available.has(rowId(r))
+        ? <RevealContact table={table} id={rowId(r)} />
+        : <span style={{ color: 'var(--ink-muted)', fontSize: 'var(--fs-small)' }}>–</span>;
+    },
     value: () => '',
   };
+}
+
+/* Which of these rows have a contact to show. null while it is being asked;
+   an empty set if the question fails (no Show button is better than a wrong one). */
+export function useAvailableContacts(table, ids) {
+  const { user } = useAuth();
+  const [found, setFound] = useState({ key: null, set: null });
+  const key = table ? `${table}:${ids.join(',')}` : null;
+  useEffect(() => {
+    if (!isManager(user) || !table) return undefined;
+    if (!ids.length) { setFound({ key, set: new Set() }); return undefined; }
+    let cancelled = false;
+    postJson('/api/pii/available', { table, ids })
+      .then(r => { if (!cancelled) setFound({ key, set: new Set(r.ids) }); })
+      .catch(() => { if (!cancelled) setFound({ key, set: new Set() }); });
+    return () => { cancelled = true; };
+  }, [user, table, key]);   // eslint-disable-line react-hooks/exhaustive-deps
+  return found.key === key ? found.set : null;
 }

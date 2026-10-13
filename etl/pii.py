@@ -201,10 +201,15 @@ def assert_protected(cx) -> None:
     key = cx.info.dsn
     if key in _PROTECTED:
         return
-    ok = cx.execute(
+    row = cx.execute(
         "SELECT to_regprocedure('dsr.pii_encrypt(text)') IS NOT NULL "
-        "AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lead_mobile_protected')"
-    ).fetchone()[0]
+        "AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lead_mobile_protected') AS ok"
+    ).fetchone()
+    # The app's pooled connections return rows as dicts; the loader's direct
+    # connections return tuples. This must read both: it ran only on tuples in
+    # testing, and `row[0]` on a pooled connection raised KeyError, which made
+    # every form / agent / webhook write fail with a 500.
+    ok = row["ok"] if isinstance(row, dict) else row[0]
     if not ok:
         raise RuntimeError(
             "This database does not have the customer-PII protection installed "
