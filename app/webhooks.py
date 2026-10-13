@@ -328,7 +328,9 @@ async def receive_enquiry(
     #      same delivery is caught here;
     #   2. after a restart, the stored name + (already scrubbed) message.
     delivery = _delivery_key(name, phone, email, subject, message)
-    phone, email = pii.mask_phone(phone), pii.mask_email(email)
+    # The cleaned originals go to the database, which encrypts them and stores
+    # the masks (db/pii.sql, revised 2026-10-13); only masks are echoed back.
+    phone, email = pii.clean_phone(phone), pii.clean_email(email)
     # Some forms put the number or the email in the name field too.
     name = pii.scrub_text(name)
     subject, message, model = (pii.scrub_text(subject), pii.scrub_text(message),
@@ -346,6 +348,7 @@ async def receive_enquiry(
 
     try:
         with session() as cx:
+            pii.assert_protected(cx)
             with cx.transaction():
                 # Retry guard. Compared on loaded_at (when this arrived), not
                 # created_at (when the enquiry happened), because a backdated
@@ -407,7 +410,8 @@ async def receive_enquiry(
             "visible_on_dashboard": is_current,
             # What was STORED, so the agent's delivery log shows the redaction
             # rather than echoing the customer's number back out.
-            "received": {"name": name, "phone": phone, "email": email,
+            "received": {"name": name, "phone": pii.mask_phone(phone),
+                         "email": pii.mask_email(email),
                          "subject": subject, "message": message},
         }
         if not is_current:

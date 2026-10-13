@@ -67,19 +67,19 @@ class NewLeadPayload(BaseModel):
     model_of_interest: Optional[str] = None
     rating: Optional[str] = None
 
-    # PII POLICY (2026-10-08, revised 2026-10-12): the agent may send the
-    # customer's phone and email, but only the masked forms are stored
-    # (984*******, rav***@gmail.com). Masked here, before the route ever sees
-    # them (etl/pii.py).
+    # PII POLICY (2026-10-08, revised 2026-10-13): the agent may send the
+    # customer's phone and email. They are stored encrypted, with only the mask
+    # visible (984*******, rav***@gmail.com): the database trigger does both
+    # (db/pii.sql), after pii.assert_protected() has checked it is installed.
     @field_validator("phone_number")
     @classmethod
     def _no_pii(cls, v):
-        return pii.mask_phone(v)
+        return pii.clean_phone(v)
 
     @field_validator("email")
     @classmethod
     def _no_email(cls, v):
-        return pii.mask_email(v)
+        return pii.clean_email(v)
 
     # A phone or email inside the name field is cut out; the name is kept.
     @field_validator("lead_name")
@@ -398,6 +398,7 @@ def create_lead(lead: NewLeadPayload):
 
     try:
         with session() as cx:
+            pii.assert_protected(cx)   # PII POLICY (2026-10-13): see etl/pii.py
             # One transaction: creating the month and filing the lead against it
             # must not be separable, or a crash between them leaves an empty
             # month behind.
@@ -420,8 +421,8 @@ def create_lead(lead: NewLeadPayload):
                     lead.lead_name,
                     # The payload has always called this phone_number while the
                     # column is `mobile`; the value used to be accepted and then
-                    # silently dropped. (Already masked by the payload
-                    # validator above - PII policy, revised 2026-10-12.)
+                    # silently dropped. (Encrypted and masked by the database
+                    # trigger - PII policy, revised 2026-10-13.)
                     lead.phone_number,
                     lead.email,
                     lead.source_id if lead.source_id is not None

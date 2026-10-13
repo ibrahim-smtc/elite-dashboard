@@ -352,14 +352,14 @@ class BookingIn(BaseModel):
     request_id: Optional[str] = Field(default=None, max_length=32)
 
     # PII POLICY (2026-10-08): a customer's phone number and home address are
-    # never stored in full (etl/pii.py): the phone is masked (984*******) and
-    # the address removed, here, before anything is written, and db/pii.sql
-    # does the same again in the database. A phone or email typed into the
-    # name is masked inside it (revised 2026-10-12; both were removed before).
+    # never stored readable (etl/pii.py): the phone goes to the database,
+    # whose trigger encrypts it and stores the mask (984*******); the address
+    # is removed here and again by db/pii.sql. A phone or email typed into the
+    # name is masked inside it (revised 2026-10-13).
     @field_validator("phone")
     @classmethod
     def _no_pii(cls, v):
-        return pii.mask_phone(v) or ""
+        return pii.clean_phone(v) or ""
 
     @field_validator("address")
     @classmethod
@@ -461,6 +461,7 @@ def create_booking(b: BookingIn):
               b.consultant or None, b.location,
               (b.address.strip() or None) if b.location == "Home" else None, b.source)
     with session() as cx:
+        pii.assert_protected(cx)   # PII POLICY (2026-10-13): see etl/pii.py
         try:
             with cx.transaction():
                 if b.request_id:

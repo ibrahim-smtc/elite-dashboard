@@ -31,6 +31,7 @@ from . import fallback
 from .db import (is_db_ready, fetch_all, pool, DSN, ensure_pool_open,
                  connect as db_connect, session)
 from .events import broker
+from etl import pii
 from etl.dimensions import activate_period, report_period
 from etl.load_dsr import Loader, workbook_problem
 from .write import (AllotmentIn, BookingIn, BookingPatch, LeadIn, RegistrationIn,
@@ -116,6 +117,22 @@ def live_status():
 # Writes
 # =====================================================================
 
+def _masked(payload: dict) -> dict:
+    """
+    PII POLICY (2026-10-13): a form's phone and email reach this module in full,
+    because the DATABASE encrypts them and stores the mask (db/pii.sql). The
+    in-memory fallback store used when no database is reachable has no such
+    trigger, so it gets the masks instead - never the full values.
+    """
+    out = dict(payload)
+    for key in ("mobile", "phone", "phone_number"):
+        if key in out:
+            out[key] = pii.mask_phone(out[key])
+    if "email" in out:
+        out["email"] = pii.mask_email(out["email"])
+    return out
+
+
 def _commit(fn, *args):
     """Run one writer inside a transaction and turn its errors into HTTP codes."""
     ensure_pool_open()
@@ -142,7 +159,7 @@ def add_lead(body: LeadIn):
         res = _commit(create_lead, body)
         broker.notify_sync("lead")
         return res
-    return fallback.store.add_lead(body.model_dump())
+    return fallback.store.add_lead(_masked(body.model_dump()))
 
 
 @router.post("/api/bookings", status_code=201, tags=["entry"])
@@ -151,7 +168,7 @@ def add_booking(body: BookingIn):
         res = _commit(create_booking, body)
         broker.notify_sync("booking")
         return res
-    return fallback.store.add_booking(body.model_dump())
+    return fallback.store.add_booking(_masked(body.model_dump()))
 
 
 @router.patch("/api/bookings/{booking_id}", tags=["entry"])
@@ -160,7 +177,7 @@ def patch_booking(booking_id: int, body: BookingPatch):
         res = _commit(update_booking, booking_id, body)
         broker.notify_sync("booking")
         return res
-    return fallback.store.patch_booking(booking_id, body.model_dump(exclude_unset=True))
+    return fallback.store.patch_booking(booking_id, _masked(body.model_dump(exclude_unset=True)))
 
 
 @router.post("/api/test-drives", status_code=201, tags=["entry"])
@@ -169,7 +186,7 @@ def add_test_drive(body: TestDriveIn):
         res = _commit(create_test_drive, body)
         broker.notify_sync("test_drive")
         return res
-    return fallback.store.add_test_drive(body.model_dump())
+    return fallback.store.add_test_drive(_masked(body.model_dump()))
 
 
 @router.post("/api/vehicles", status_code=201, tags=["entry"])

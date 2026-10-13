@@ -55,20 +55,22 @@ class LeadIn(_Payload):
     qualified: bool = Field(True, description="Counts toward qualified enquiries")
     created_on: date | None = Field(None, description="Defaults to today")
 
-    # PII POLICY (2026-10-08, revised 2026-10-12): customer phone numbers and
-    # emails are stored masked (etl/pii.py). They are masked here, at the edge
-    # of the request, so nothing after this point ever holds the full value.
-    # This used to validate the number as a 10-digit mobile; a number that is
-    # about to be masked is not worth refusing a form over, so it no longer does.
+    # PII POLICY (revised 2026-10-13): customer phone numbers and emails are
+    # stored encrypted, with only the mask visible (etl/pii.py). The cleaned
+    # value goes to the database, whose trigger (db/pii.sql) encrypts it and
+    # stores the mask - the write functions below first check that trigger is
+    # installed (pii.assert_protected). An offline fallback write is masked in
+    # app/entry.py instead. This used to validate the number as a 10-digit
+    # mobile; it no longer refuses a form over the number's format.
     @field_validator("mobile")
     @classmethod
     def _mobile(cls, v):
-        return pii.mask_phone(v)
+        return pii.clean_phone(v)
 
     @field_validator("email")
     @classmethod
     def _email(cls, v):
-        return pii.mask_email(v)
+        return pii.clean_email(v)
 
 
 class BookingIn(_Payload):
@@ -94,7 +96,7 @@ class BookingIn(_Payload):
     crm_entry_done: bool | None = None
     notes: str | None = Field(None, max_length=400)
 
-    # PII POLICY (revised 2026-10-12): phone masked, phone/email masked in notes.
+    # PII POLICY (revised 2026-10-13): phone encrypted + masked, phone/email masked in notes.
     @field_validator("mobile")
     @classmethod
     def _mobile(cls, v):
@@ -134,7 +136,7 @@ class BookingPatch(_Payload):
     @field_validator("mobile")
     @classmethod
     def _mobile(cls, v):
-        return pii.mask_phone(v)
+        return pii.clean_phone(v)
 
     @field_validator("notes")
     @classmethod
@@ -244,6 +246,7 @@ def _one(cx, sql: str, params: tuple):
 
 
 def create_lead(cx, body: LeadIn) -> dict:
+    pii.assert_protected(cx)   # PII POLICY (2026-10-13): see etl/pii.py
     on = body.created_on or date.today()
     period_id, period_label, is_current = dims.period_for(cx, on)
     lead_id = _one(cx, """
@@ -267,6 +270,7 @@ def create_lead(cx, body: LeadIn) -> dict:
 
 
 def create_booking(cx, body: BookingIn) -> dict:
+    pii.assert_protected(cx)   # PII POLICY (2026-10-13): see etl/pii.py
     on = body.booking_date or date.today()
     period_id, period_label, is_current = dims.period_for(cx, on)
     consultant_id = dims.resolve_consultant(cx, body.consultant, activate=True)
@@ -299,6 +303,7 @@ def create_booking(cx, body: BookingIn) -> dict:
 
 def update_booking(cx, booking_id: int, body: BookingPatch) -> bool:
     """Apply only the supplied fields. Returns False if the id does not exist."""
+    pii.assert_protected(cx)   # PII POLICY (2026-10-13): see etl/pii.py
     sets: list[str] = []
     params: list = []
     simple = {
@@ -325,6 +330,7 @@ def update_booking(cx, booking_id: int, body: BookingPatch) -> bool:
 
 
 def create_test_drive(cx, body: TestDriveIn) -> int:
+    pii.assert_protected(cx)   # PII POLICY (2026-10-13): see etl/pii.py
     return _one(cx, """
         INSERT INTO test_drive (test_drive_number, lead_name, mobile, source_id,
                                 model_of_interest, model_id, start_km, end_km,

@@ -28,8 +28,9 @@ from . import dimensions as dims
 from . import normalize as nz
 # PII POLICY (2026-10-08, revised 2026-10-12): a customer's full phone, email
 # and address are never stored (etl/pii.py). Phone COLUMNS go through
-# pii.mask_phone() (984*******), email columns through pii.mask_email()
-# (rav***@gmail.com), address columns through pii.redact(); every
+# pii.clean_phone() / pii.clean_email() - the database trigger (db/pii.sql)
+# encrypts the full value and stores the mask (984*******, rav***@gmail.com),
+# see Loader.run's assert_protected - address columns through pii.redact(); every
 # customer NAME and free-text cell goes through pii.scrub_text(), because the
 # CRM export sometimes writes the phone or email into the name field itself
 # ("Naresh naresh@...", "Asif 98..."). Names are scrubbed the same way wherever
@@ -475,11 +476,11 @@ class Loader:
             for _, cell in self.rows(sheet, 1, key_col):
                 created = nz.as_datetime(cell(2))
                 # PII POLICY (revised 2026-10-12): Mobile (col 7) and Email
-                # (col 8) are stored masked - see etl/pii.py. The TD Leads tab
+                # (col 8) are stored encrypted + masked - see etl/pii.py. The TD Leads tab
                 # alone carries ~1,800 of each.
                 rows.append((
-                    nz.clean(cell(1)), created, pii.scrub_text(nz.clean(cell(5))), pii.mask_phone(cell(7)),
-                    pii.mask_email(cell(8)), self.source_id(cell(9)), nz.clean(cell(6)),
+                    nz.clean(cell(1)), created, pii.scrub_text(nz.clean(cell(5))), pii.clean_phone(cell(7)),
+                    pii.clean_email(cell(8)), self.source_id(cell(9)), nz.clean(cell(6)),
                     nz.clean(cell(10)), nz.clean(cell(11)), nz.clean(cell(14)),
                     self.model_id(nz.model_from_text(cell(10))),
                     nz.clean(cell(15)), self.consultant_id(cell(15)),
@@ -504,10 +505,10 @@ class Loader:
         rows = []
         for _, cell in self.rows("TD", 1, 8):
             # PII POLICY (revised 2026-10-12): Mobile No (col 4) and Email
-            # (col 5) are stored masked - see etl/pii.py.
+            # (col 5) are stored encrypted + masked - see etl/pii.py.
             rows.append((
                 nz.upper(cell(8)), nz.clean(cell(16)), pii.scrub_text(nz.clean(cell(1))),
-                pii.mask_phone(cell(4)), pii.mask_email(cell(5)), self.source_id(cell(3)),
+                pii.clean_phone(cell(4)), pii.clean_email(cell(5)), self.source_id(cell(3)),
                 nz.clean(cell(6)), nz.clean(cell(7)),
                 self.model_id(nz.model_from_text(cell(7))), nz.upper(cell(9)),
                 nz.as_int(cell(10)), nz.as_int(cell(11)), nz.as_int(cell(12)),
@@ -544,14 +545,14 @@ class Loader:
         for sheet, header, current, note_cols in booking_tabs:
             for _, cell in self.rows(sheet, header, 6):
                 # PII POLICY (revised 2026-10-12): MOBILENO (col 7) is stored
-                # masked, and a phone or email typed into the remarks columns
+                # encrypted + masked, and a phone or email typed into the remarks columns
                 # is masked inside them - see etl/pii.py.
                 notes = pii.scrub_text(" | ".join(
                     n for n in (nz.clean(cell(c)) for c in note_cols) if n) or None)
                 model_label, variant_label = cell(8), cell(9)
                 rows_main.append((
                     nz.as_date(cell(2)), nz.clean(cell(3)), self.source_id(cell(4)),
-                    self.consultant_id(cell(5)), pii.scrub_text(nz.clean(cell(6))), pii.mask_phone(cell(7)),
+                    self.consultant_id(cell(5)), pii.scrub_text(nz.clean(cell(6))), pii.clean_phone(cell(7)),
                     self.model_id(model_label),
                     self.variant_id(model_label, variant_label, long_text=cell(11)),
                     self.colour_id(cell(12)), nz.as_int(cell(10)), nz.clean(cell(11)),
@@ -709,14 +710,14 @@ class Loader:
         for _, cell in self.rows("Reg Report", 2, 3):
             chassis = nz.upper(cell(3))
             # PII POLICY (revised 2026-10-12): Contact No (col 24) and EMAIL ID
-            # (col 47) are stored masked; ADDRESS (col 46) is never stored -
+            # (col 47) are stored encrypted + masked; ADDRESS (col 46) is never stored -
             # see etl/pii.py.
             rows.append((
                 self.vehicle_by_chassis.get(chassis), chassis, pii.scrub_text(nz.clean(cell(18))),
                 self.consultant_id(cell(19)), self.source_id(cell(20)),
                 nz.upper(cell(17)), nz.as_date(cell(21)), nz.as_date(cell(22)),
-                nz.as_date(cell(23)), pii.mask_phone(cell(24)), pii.redact(cell(46)),
-                pii.mask_email(cell(47)), pii.scrub_text(nz.clean(cell(25))), nz.as_date(cell(26)),
+                nz.as_date(cell(23)), pii.clean_phone(cell(24)), pii.redact(cell(46)),
+                pii.clean_email(cell(47)), pii.scrub_text(nz.clean(cell(25))), nz.as_date(cell(26)),
                 nz.as_date(cell(27)), nz.as_time(cell(28)), nz.as_date(cell(29)),
                 nz.as_date(cell(30)), nz.as_date(cell(31)), nz.upper(cell(32)),
                 nz.clean(cell(33)), nz.as_date(cell(34)), nz.upper(cell(35)),
@@ -1063,6 +1064,10 @@ class Loader:
 
     def run(self):
         self.cx.execute("SET search_path = dsr, public")
+        # PII POLICY (2026-10-13): phone/email columns are handed to the database
+        # in full, for its trigger to encrypt and mask - so the database must
+        # have that protection (db/pii.sql) before a single row goes in.
+        pii.assert_protected(self.cx)
         self.load_period()
         self.reset()
         self.load_vehicles()

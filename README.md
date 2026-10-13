@@ -34,17 +34,22 @@ powershell -File tools/pg.ps1 start
 python tools/sql.py -f db/schema.sql && python tools/sql.py -f db/triggers.sql && python tools/sql.py -f db/test_drives.sql && python tools/sql.py -f db/pii.sql && python -m etl.load_dsr && python tools/sql.py -f db/views.sql
 ```
 
-> **Customer PII is never stored in full (policy, 2026-10-08, revised
-> 2026-10-12).** Phone numbers are masked to their first three digits
-> (`984*******`), email addresses to the first three characters and the domain
-> (`rav***@gmail.com`), and postal addresses are replaced with `[REDACTED]` —
-> on every way in (workbook, CSV, the forms, the agent APIs) by `etl/pii.py`,
-> and again by database triggers in `db/pii.sql` for anything that writes to
-> the database directly. Phones and emails typed inside notes or chat messages
-> are masked the same way. Customer names are kept. Rows stored before
-> 2026-10-12 hold `[REDACTED]`; upload that month's workbook again to store
-> them masked. To change the **live** database, use `tools/migrate.py`, which
-> dry-runs by default; existing rows are handled by `db/pii_backfill.sql`.
+> **Customer PII is never stored readable (policy, 2026-10-08, revised
+> 2026-10-12 and 2026-10-13).** A phone number or email is stored **encrypted**
+> (in `mobile_enc`, `email_enc`, … — OpenPGP public-key encryption, done by the
+> database triggers in `db/pii.sql` for every writer, the Perfox agent
+> included) and shown only **masked**: `984*******`, `rav***@gmail.com`.
+> Postal addresses are replaced with `[REDACTED]`. Only the **public** key is in
+> the database; the private key that can decrypt is kept offline by the admin
+> (`tools/pii_keys.py` — `generate`, `install`, `reveal`). The dashboard never
+> decrypts. A CHECK constraint makes the database refuse an unmasked value even
+> if the trigger were switched off, and the app refuses to write to a database
+> without `db/pii.sql`. Phones and emails inside notes or chat messages are
+> masked (not encrypted). Customer names are kept. Rows stored before
+> 2026-10-13 have no encrypted value (before 2026-10-12 they hold
+> `[REDACTED]`); upload that month's workbook again to store them encrypted.
+> To change the **live** database, use `tools/migrate.py`, which dry-runs by
+> default.
 
 ```bash
 python run.py
@@ -320,10 +325,11 @@ Two more things worth knowing:
 DSR August 2026.xlsx        source workbook
 db/schema.sql               tables, enums, indexes, comments
 db/triggers.sql             change notification (pg_notify)
-db/pii.sql                  customer PII masking/redaction triggers (policy 2026-10-08, revised 10-12)
+db/pii.sql                  customer PII encryption/masking triggers + constraints (policy 2026-10-08, revised 10-13)
 db/pii_backfill.sql         one-off: mask/redact PII already in the database
 db/views.sql                analytical + agent views (re-runnable)
 etl/pii.py                  customer PII masking/redaction, used by every ingestion path
+tools/pii_keys.py           the encryption key pair: generate, install the public key, admin reveal
 tools/migrate.py            apply SQL to the live DB in one transaction, dry run first
 etl/normalize.py            cleaning and canonicalisation
 etl/dimensions.py           dimension resolution, shared by loader and API

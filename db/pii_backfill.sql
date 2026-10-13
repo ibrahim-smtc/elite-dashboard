@@ -17,7 +17,10 @@
 --     python tools/migrate.py db/pii_backfill.sql --commit   # do it
 --
 -- Needs db/pii.sql applied first (it uses its functions). Only rows that still
--- hold PII are touched, so it is safe to run again.
+-- hold PII are touched, so it is safe to run again. A phone/email column is
+-- assigned to itself ("mobile = mobile"): the db/pii.sql trigger then encrypts
+-- the full value (2026-10-13) and stores the mask. db/pii.sql already does
+-- this for those columns when it is applied; this file covers the free text.
 -- =====================================================================
 
 SET search_path = dsr, public;
@@ -25,8 +28,8 @@ SET search_path = dsr, public;
 -- Customer names are scrubbed as well: a phone or email the CRM export wrote
 -- into the name field is masked, and the name is kept (see db/pii.sql).
 UPDATE dsr.lead
-   SET mobile       = dsr.pii_mask_phone(mobile),
-       email        = dsr.pii_mask_email(email),
+   SET mobile       = mobile,
+       email        = email,
        enquiry_note = dsr.pii_scrub(enquiry_note),
        lead_name    = dsr.pii_scrub(lead_name)
  WHERE mobile       IS DISTINCT FROM dsr.pii_mask_phone(mobile)
@@ -35,7 +38,7 @@ UPDATE dsr.lead
     OR lead_name    IS DISTINCT FROM dsr.pii_scrub(lead_name);
 
 UPDATE dsr.booking
-   SET mobile        = dsr.pii_mask_phone(mobile),
+   SET mobile        = mobile,
        notes         = dsr.pii_scrub(notes),
        customer_name = dsr.pii_scrub(customer_name)
  WHERE mobile        IS DISTINCT FROM dsr.pii_mask_phone(mobile)
@@ -43,16 +46,16 @@ UPDATE dsr.booking
     OR customer_name IS DISTINCT FROM dsr.pii_scrub(customer_name);
 
 UPDATE dsr.test_drive
-   SET mobile    = dsr.pii_mask_phone(mobile),
-       email     = dsr.pii_mask_email(email),
+   SET mobile    = mobile,
+       email     = email,
        lead_name = dsr.pii_scrub(lead_name)
  WHERE mobile    IS DISTINCT FROM dsr.pii_mask_phone(mobile)
     OR email     IS DISTINCT FROM dsr.pii_mask_email(email)
     OR lead_name IS DISTINCT FROM dsr.pii_scrub(lead_name);
 
 UPDATE dsr.registration
-   SET contact_no              = dsr.pii_mask_phone(contact_no),
-       email                   = dsr.pii_mask_email(email),
+   SET contact_no              = contact_no,
+       email                   = email,
        address                 = dsr.pii_redact(address),
        customer_name           = dsr.pii_scrub(customer_name),
        nadcon_punched_customer = dsr.pii_scrub(nadcon_punched_customer)
@@ -77,7 +80,7 @@ BEGIN
         -- column, and the UPDATE below failed on it. No-op if present.
         ALTER TABLE dsr.test_drive_booking ADD COLUMN IF NOT EXISTS phone text;
         UPDATE dsr.test_drive_booking
-           SET phone    = dsr.pii_mask_phone(phone),
+           SET phone    = phone,
                address  = dsr.pii_redact(address),
                customer = dsr.pii_scrub(customer),
                note     = dsr.pii_scrub(note)
@@ -92,8 +95,8 @@ DO $$
 BEGIN
     IF to_regclass('public.enquiries') IS NOT NULL THEN
         UPDATE public.enquiries
-           SET mobile    = dsr.pii_mask_phone(mobile),
-               email     = dsr.pii_mask_email(email),
+           SET mobile    = mobile,
+               email     = email,
                full_name = dsr.pii_scrub(full_name),
                subject   = dsr.pii_scrub(subject),
                message   = dsr.pii_scrub(message)

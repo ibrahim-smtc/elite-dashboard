@@ -1,8 +1,24 @@
 -- =====================================================================
 -- Customer PII protection, enforced by the database.
 --
--- PII POLICY (2026-10-08, revised 2026-10-12): a customer's full phone
--- number, email address and postal address must not be stored. The app already
+-- PII POLICY (2026-10-08, revised 2026-10-12 and 2026-10-13): a customer's
+-- full phone number and email address are never stored READABLE, and the
+-- postal address is not stored at all.
+--
+-- ENCRYPTION (2026-10-13): the full phone number / email is kept only as
+-- ciphertext, in a companion column (mobile -> mobile_enc, email -> email_enc,
+-- contact_no -> contact_no_enc, phone -> phone_enc). The trigger below
+-- encrypts it with pgcrypto's OpenPGP public-key encryption, using the PUBLIC
+-- key in dsr.pii_key. A public key can only lock: nothing in this database, in
+-- Supabase or on the app server can decrypt. The private key is kept offline
+-- by the admin (tools/pii_keys.py). Until a key is installed, nothing is
+-- encrypted and only the mask is stored - exactly the 2026-10-12 behaviour.
+-- If encryption fails for any reason the row is still written, masked, and a
+-- WARNING is raised - a lost ciphertext is better than a lost lead.
+--
+-- FAIL-CLOSED: a CHECK constraint on every phone/email column accepts only a
+-- masked value, '[REDACTED]' or NULL. If this trigger were ever dropped or
+-- disabled, a write carrying a full number fails instead of storing it. The app already
 -- applies this on every route it owns (etl/pii.py), but the app is not the only
 -- thing that writes here: the Perfox agent has direct SQL access to Supabase
 -- and writes into dsr.lead, public.lead and public.enquiries itself. A rule
@@ -170,6 +186,107 @@ COMMENT ON FUNCTION dsr.pii_scrub(text) IS
    keeps the rest of it. See etl/pii.py.';
 
 
+-- ---------------------------------------------------------------------
+-- ENCRYPTION (2026-10-13)
+-- ---------------------------------------------------------------------
+
+-- pgcrypto: already installed on Supabase (in the `extensions` schema); a new
+-- local database gets it here.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto') THEN
+        IF to_regnamespace('extensions') IS NOT NULL THEN
+            CREATE EXTENSION pgcrypto WITH SCHEMA extensions;
+        ELSE
+            CREATE EXTENSION pgcrypto;
+        END IF;
+    END IF;
+END $$;
+
+-- The PUBLIC key(s) phone numbers and emails are encrypted with. Not secret.
+-- One is active (used for new values); older ones stay so their ciphertexts
+-- are still recognised after a key change. Installed with
+-- tools/pii_keys.py install, which calls dsr.pii_install_key().
+CREATE TABLE IF NOT EXISTS dsr.pii_key (
+    key_id     text PRIMARY KEY,               -- OpenPGP key id (pgp_key_id)
+    public_key text NOT NULL,                  -- ASCII-armored public key
+    active     boolean NOT NULL DEFAULT true,
+    added_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS pii_key_one_active ON dsr.pii_key (active) WHERE active;
+
+COMMENT ON TABLE dsr.pii_key IS
+  'PII policy (2026-10-13): public key(s) customer phones/emails are encrypted
+   with. The matching private key is NOT in this database - it is kept offline.';
+
+-- What is encrypted: the value as given, trimmed; a phone typed into Excel as
+-- a number (9845012345.0) loses its ".0". The same as etl/pii.clean_phone /
+-- clean_email, which the app sends.
+CREATE OR REPLACE FUNCTION dsr.pii_plain(v text) RETURNS text
+LANGUAGE sql IMMUTABLE AS $$
+    SELECT regexp_replace(regexp_replace(v, '^[[:space:]]+|[[:space:]]+$', '', 'g'),
+                          '^([0-9]+)\.0+$', '\1');
+$$;
+
+-- The value encrypted with the active public key, or NULL when there is no
+-- key or anything goes wrong (the row is then stored masked only, and a
+-- WARNING says so). Never raises: encryption must not block a business write.
+CREATE OR REPLACE FUNCTION dsr.pii_encrypt(v text) RETURNS bytea
+LANGUAGE plpgsql VOLATILE
+SET search_path = dsr, extensions, public, pg_catalog AS $$
+DECLARE
+    k text;
+BEGIN
+    IF v IS NULL THEN
+        RETURN NULL;
+    END IF;
+    SELECT public_key INTO k FROM dsr.pii_key WHERE active;
+    IF k IS NULL THEN
+        RETURN NULL;
+    END IF;
+    RETURN pgp_pub_encrypt(v, dearmor(k), 'cipher-algo=aes256');
+EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'PII encryption failed (%) - the value was stored masked only', SQLERRM;
+    RETURN NULL;
+END $$;
+
+-- True when a ciphertext was made with one of this database's keys.
+CREATE OR REPLACE FUNCTION dsr.pii_is_ours(e bytea) RETURNS boolean
+LANGUAGE plpgsql STABLE
+SET search_path = dsr, extensions, public, pg_catalog AS $$
+DECLARE
+    kid text;
+BEGIN
+    IF e IS NULL THEN
+        RETURN false;
+    END IF;
+    kid := pgp_key_id(e);
+    RETURN EXISTS (SELECT 1 FROM dsr.pii_key k WHERE k.key_id = kid);
+EXCEPTION WHEN OTHERS THEN
+    RETURN false;
+END $$;
+
+-- Install a public key (ASCII-armored) and make it the active one. Refuses a
+-- private key, and any key pgcrypto cannot encrypt with (it needs RSA or
+-- Elgamal, not ECC).
+CREATE OR REPLACE FUNCTION dsr.pii_install_key(armored text) RETURNS text
+LANGUAGE plpgsql
+SET search_path = dsr, extensions, public, pg_catalog AS $$
+DECLARE
+    kid text;
+BEGIN
+    IF armored IS NULL OR position('PRIVATE KEY' IN upper(armored)) > 0 THEN
+        RAISE EXCEPTION 'Refusing: this is not a public key. Never put the private key in the database.';
+    END IF;
+    -- The id a ciphertext made with this key will carry (pii_is_ours checks it).
+    kid := pgp_key_id(pgp_pub_encrypt('test', dearmor(armored), 'cipher-algo=aes256'));
+    UPDATE dsr.pii_key SET active = false WHERE active AND key_id <> kid;
+    INSERT INTO dsr.pii_key (key_id, public_key, active) VALUES (kid, armored, true)
+    ON CONFLICT (key_id) DO UPDATE SET public_key = EXCLUDED.public_key, active = true;
+    RETURN kid;
+END $$;
+
+
 -- One trigger function for every table. Each trigger names its columns as
 -- arguments - 'phone:<column>', 'email:<column>', 'redact:<column>' (an
 -- address) or 'scrub:<column>' (free text) - so adding a column to the policy
@@ -177,23 +294,55 @@ COMMENT ON FUNCTION dsr.pii_scrub(text) IS
 CREATE OR REPLACE FUNCTION dsr.pii_guard() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
-    spec  text;
-    col   text;
-    val   text;
-    cur   jsonb := to_jsonb(NEW);
-    patch jsonb := '{}'::jsonb;
+    spec    text;
+    kind    text;
+    col     text;
+    enc_col text;
+    val     text;
+    masked  text;
+    has_enc boolean;
+    cur     jsonb := to_jsonb(NEW);
+    prev    jsonb := CASE WHEN TG_OP = 'UPDATE' THEN to_jsonb(OLD) END;
+    patch   jsonb := '{}'::jsonb;
 BEGIN
     FOREACH spec IN ARRAY TG_ARGV LOOP
-        col := split_part(spec, ':', 2);
-        val := cur ->> col;
-        CONTINUE WHEN val IS NULL;
-        patch := patch || jsonb_build_object(col,
-            CASE split_part(spec, ':', 1)
-                WHEN 'phone'  THEN dsr.pii_mask_phone(val)
-                WHEN 'email'  THEN dsr.pii_mask_email(val)
-                WHEN 'redact' THEN dsr.pii_redact(val)
-                ELSE dsr.pii_scrub(val)
-            END);
+        kind := split_part(spec, ':', 1);
+        col  := split_part(spec, ':', 2);
+        val  := cur ->> col;
+
+        IF kind IN ('phone', 'email') THEN
+            enc_col := col || '_enc';
+            has_enc := cur ? enc_col;
+            masked  := CASE kind WHEN 'phone' THEN dsr.pii_mask_phone(val)
+                                 ELSE dsr.pii_mask_email(val) END;
+            IF masked IS NULL THEN
+                -- Nothing given (NULL, '', 'N/A'): no value, and no ciphertext.
+                IF val IS NOT NULL THEN
+                    patch := patch || jsonb_build_object(col, NULL);
+                END IF;
+                IF has_enc AND cur ->> enc_col IS NOT NULL THEN
+                    patch := patch || jsonb_build_object(enc_col, NULL);
+                END IF;
+            ELSIF masked IS DISTINCT FROM val THEN
+                -- A full value: kept only as ciphertext; the column shows the mask.
+                patch := patch || jsonb_build_object(col, masked);
+                IF has_enc THEN
+                    patch := patch || jsonb_build_object(enc_col,
+                                 dsr.pii_encrypt(dsr.pii_plain(val)));
+                END IF;
+            ELSIF has_enc AND cur ->> enc_col IS NOT NULL
+                  AND (prev IS NULL OR (cur ->> enc_col) IS DISTINCT FROM (prev ->> enc_col))
+                  AND NOT dsr.pii_is_ours((cur ->> enc_col)::bytea) THEN
+                -- Already masked, and something was written into the ciphertext
+                -- column that this database's key did not make: drop it.
+                patch := patch || jsonb_build_object(enc_col, NULL);
+            END IF;
+        ELSE
+            CONTINUE WHEN val IS NULL;
+            patch := patch || jsonb_build_object(col,
+                CASE kind WHEN 'redact' THEN dsr.pii_redact(val)
+                          ELSE dsr.pii_scrub(val) END);
+        END IF;
     END LOOP;
     IF patch <> '{}'::jsonb THEN
         NEW := jsonb_populate_record(NEW, patch);
@@ -202,9 +351,9 @@ BEGIN
 END $$;
 
 COMMENT ON FUNCTION dsr.pii_guard() IS
-  'BEFORE INSERT OR UPDATE: applies pii_mask_phone / pii_mask_email / pii_redact
-   / pii_scrub to the columns named in the trigger arguments. The PII policy
-   backstop for writes that do not go through the app.';
+  'BEFORE INSERT OR UPDATE: a full phone/email is encrypted into <column>_enc
+   and replaced by its mask; addresses become [REDACTED]; free text is masked.
+   Applies to every writer - the app, the Perfox agent, the table editor.';
 
 
 -- FIX (2026-10-09): the live Supabase test_drive_booking table had lost its
@@ -213,12 +362,39 @@ COMMENT ON FUNCTION dsr.pii_guard() IS
 -- Test Drives board would fail on that database, and db/pii_backfill.sql died
 -- with `column "phone" does not exist` and rolled back, leaving home addresses
 -- unredacted. Put the column back: from here on it only ever holds NULL or a
--- masked number (the trigger below), never a full one. No-op if present.
+-- masked number (the trigger below; the full one is in phone_enc, encrypted).
+-- No-op if present.
 DO $$
 BEGIN
     IF to_regclass('dsr.test_drive_booking') IS NOT NULL THEN
         ALTER TABLE dsr.test_drive_booking ADD COLUMN IF NOT EXISTS phone text;
     END IF;
+END $$;
+
+
+-- The encrypted companion of every phone/email column (2026-10-13). bytea:
+-- an OpenPGP message. Only the trigger writes it.
+DO $$
+DECLARE
+    c record;
+BEGIN
+    FOR c IN
+        SELECT * FROM (VALUES
+            ('dsr', 'lead', 'mobile', 'phone'), ('dsr', 'lead', 'email', 'email'),
+            ('dsr', 'booking', 'mobile', 'phone'),
+            ('dsr', 'test_drive', 'mobile', 'phone'), ('dsr', 'test_drive', 'email', 'email'),
+            ('dsr', 'registration', 'contact_no', 'phone'), ('dsr', 'registration', 'email', 'email'),
+            ('dsr', 'test_drive_booking', 'phone', 'phone'),
+            ('public', 'enquiries', 'mobile', 'phone'), ('public', 'enquiries', 'email', 'email')
+        ) AS t(sch, tbl, col, kind)
+    LOOP
+        CONTINUE WHEN to_regclass(format('%I.%I', c.sch, c.tbl)) IS NULL;
+        EXECUTE format('ALTER TABLE %I.%I ADD COLUMN IF NOT EXISTS %I bytea',
+                       c.sch, c.tbl, c.col || '_enc');
+        EXECUTE format('COMMENT ON COLUMN %I.%I.%I IS %L', c.sch, c.tbl, c.col || '_enc',
+                       'PII policy (2026-10-13): the full ' || c.col || ', encrypted with the '
+                       'public key in dsr.pii_key. Decryptable only with the offline private key.');
+    END LOOP;
 END $$;
 
 
@@ -261,5 +437,41 @@ BEGIN
             'FOR EACH ROW EXECUTE FUNCTION dsr.pii_guard(%s)',
             spec.tbl || '_pii_guard', spec.sch, spec.tbl,
             (SELECT string_agg(quote_literal(c), ', ') FROM unnest(spec.cols) c));
+    END LOOP;
+END $$;
+
+
+-- Any full phone/email still stored (none on a database that has had this
+-- file before) goes through the trigger above - encrypted and masked - so the
+-- constraints below can be added. "SET col = col" is enough: the trigger sees
+-- a full value arriving and does the rest.
+DO $$
+DECLARE
+    c record;
+BEGIN
+    FOR c IN
+        SELECT * FROM (VALUES
+            ('dsr', 'lead', 'mobile', 'phone'), ('dsr', 'lead', 'email', 'email'),
+            ('dsr', 'booking', 'mobile', 'phone'),
+            ('dsr', 'test_drive', 'mobile', 'phone'), ('dsr', 'test_drive', 'email', 'email'),
+            ('dsr', 'registration', 'contact_no', 'phone'), ('dsr', 'registration', 'email', 'email'),
+            ('dsr', 'test_drive_booking', 'phone', 'phone'),
+            ('public', 'enquiries', 'mobile', 'phone'), ('public', 'enquiries', 'email', 'email')
+        ) AS t(sch, tbl, col, kind)
+    LOOP
+        CONTINUE WHEN to_regclass(format('%I.%I', c.sch, c.tbl)) IS NULL;
+        EXECUTE format('UPDATE %I.%I SET %I = %I WHERE %I IS DISTINCT FROM dsr.%I(%I)',
+                       c.sch, c.tbl, c.col, c.col, c.col,
+                       CASE c.kind WHEN 'phone' THEN 'pii_mask_phone' ELSE 'pii_mask_email' END,
+                       c.col);
+
+        -- FAIL-CLOSED: only a mask, [REDACTED] or NULL may be stored here.
+        EXECUTE format('ALTER TABLE %I.%I DROP CONSTRAINT IF EXISTS %I',
+                       c.sch, c.tbl, c.tbl || '_' || c.col || '_protected');
+        EXECUTE format('ALTER TABLE %I.%I ADD CONSTRAINT %I CHECK (%I IS NULL OR %I = %L OR %I ~ %L)',
+                       c.sch, c.tbl, c.tbl || '_' || c.col || '_protected',
+                       c.col, c.col, '[REDACTED]', c.col,
+                       CASE c.kind WHEN 'phone' THEN '^[0-9]{3}\*+$'
+                                   ELSE '^[^@[:space:]]{0,3}\*\*\*@[^[:space:]]+$' END);
     END LOOP;
 END $$;

@@ -140,6 +140,16 @@ def pii_census(cx) -> dict:
     return out
 
 
+def encrypted_counts(cx) -> dict:
+    """How many full phone numbers / emails are held encrypted (PII policy 2026-10-13)."""
+    out = {}
+    for schema, table, column, kind in PII_COLUMNS:
+        if kind in ("phone", "email") and _exists(cx, schema, table, column + "_enc"):
+            out[f"{schema}.{table}.{column}_enc"] = cx.execute(
+                f'SELECT count("{column}_enc") FROM {schema}."{table}"').fetchone()[0]
+    return out
+
+
 def unplaced_rows(cx) -> dict:
     """Workbook rows with no load_period_id - the per-month views cannot place them."""
     out = {}
@@ -201,10 +211,11 @@ def main() -> int:
             cx.execute("SET LOCAL lock_timeout = '20s'")
 
             fig0, pii0, unplaced0 = figures(cx), pii_census(cx), unplaced_rows(cx)
+            enc0 = encrypted_counts(cx)
             for path, text in scripts:
                 cx.execute(text)
                 print(f"applied   {path.relative_to(ROOT) if ROOT in path.parents else path}")
-            fig1, pii1 = figures(cx), pii_census(cx)
+            fig1, pii1, enc1 = figures(cx), pii_census(cx), encrypted_counts(cx)
         except Exception as exc:
             cx.rollback()
             print(f"\nFAILED - rolled back, nothing was changed.\n{type(exc).__name__}: {exc}")
@@ -223,6 +234,11 @@ def main() -> int:
         for k in sorted(pii0.keys() | pii1.keys()):
             print(f"  {k:<40} {pii0.get(k, '-'):>14} -> {pii1.get(k, '-')}")
         remaining = sum(v for v in pii1.values() if isinstance(v, int))
+
+        if enc0 or enc1:
+            print("\nFull phone numbers / emails held encrypted (readable only with the offline key)")
+            for k in sorted(enc0.keys() | enc1.keys()):
+                print(f"  {k:<40} {enc0.get(k, '-'):>14} -> {enc1.get(k, '-')}")
 
         if any(unplaced0.values()):
             print("\nWorkbook rows with no load_period_id (the per-month views cannot place these)")

@@ -36,3 +36,11 @@ tmp/
 
 # Local prototype data - the test drive board keeps its bookings here
 .local/
+
+# PII encryption keys (tools/pii_keys.py) - NEVER commit a key, least of all the private one
+*.asc
+*.gpg
+*.kbx
+elite-pii-key/
+PRIVATE-KEY*
+private-keys-v1.d/

@@ -1,8 +1,18 @@
 """
 Customer PII protection - the one place that decides what is stored.
 
-PII POLICY (2026-10-08, revised 2026-10-12): a customer's full phone number,
-email address and postal address must not reach the database.
+PII POLICY (2026-10-08, revised 2026-10-12 and 2026-10-13): a customer's full
+phone number and email address are never stored READABLE, and the postal
+address is not stored at all.
+
+  * Phone numbers and emails are ENCRYPTED (2026-10-13): the full value is
+    stored only as ciphertext, in a companion column (mobile -> mobile_enc,
+    email -> email_enc, ...). It is encrypted INSIDE THE DATABASE by the
+    db/pii.sql trigger, with a PUBLIC key (OpenPGP, pgcrypto). Nothing on the
+    server - not Render, not Supabase - holds the key that decrypts it: the
+    private key stays offline with the admin (tools/pii_keys.py). The
+    dashboard never decrypts anything.
+  * The visible column holds the MASKED value, as below, for everyone.
 
   * Phone numbers are MASKED: the first three digits are kept and every other
     digit becomes "*" - 9845012345 is stored as 984*******. A +91 or a leading
@@ -29,6 +39,16 @@ substance of the enquiry.
 
 Every function here is idempotent - masking a masked value changes nothing -
 because the database trigger runs again on every UPDATE of a row.
+
+Why the encryption happens in the database and not here: the Perfox agent
+writes leads straight into Supabase with its own SQL, never through this app.
+Only the database trigger sees every writer. So for a phone or email COLUMN the
+app now hands the database the cleaned original (clean_phone / clean_email)
+and the trigger encrypts it and stores the mask. That is fail-closed twice
+over: assert_protected() refuses to send a full value to a database without
+db/pii.sql, and a CHECK constraint there rejects any row whose visible column
+is not masked - so a disabled trigger blocks the write instead of storing the
+number. Free text and names are still masked here as well (scrub_text).
 
 Where this is applied, so a new way in has a list to join:
 
@@ -144,6 +164,53 @@ def mask_email(value) -> str | None:
         return text
     found = _EMAIL.search(text)
     return mask_email_address(found.group(0)) if found else REDACTED
+
+
+def clean_phone(value) -> str | None:
+    """
+    A phone COLUMN's value as it is handed to the database, which encrypts it
+    and stores the mask (db/pii.sql). Nothing given stays None. Only call this
+    for a write to a database that assert_protected() has accepted.
+    """
+    if nz.clean(value) is None:
+        return None
+    # Same as dsr.pii_plain(): only an all-digit value loses a trailing ".0".
+    return re.sub(r"^([0-9]+)\.0+$", r"\1", _trimmed(value))
+
+
+def clean_email(value) -> str | None:
+    """An email COLUMN's value as it is handed to the database - see clean_phone."""
+    if nz.clean(value) is None:
+        return None
+    return _trimmed(value)
+
+
+# The databases already checked, by connection string. A database is checked
+# once per process: the protection is installed by a migration, not toggled.
+_PROTECTED: set[str] = set()
+
+
+def assert_protected(cx) -> None:
+    """
+    Refuse to send a full phone number or email to a database that would store
+    it readable. db/pii.sql installs the encryption trigger and the CHECK
+    constraints that make the database itself refuse an unmasked value; until
+    it has been applied, writing clean_phone()/clean_email() values there is
+    exactly the leak this module exists to prevent.
+    """
+    key = cx.info.dsn
+    if key in _PROTECTED:
+        return
+    ok = cx.execute(
+        "SELECT to_regprocedure('dsr.pii_encrypt(text)') IS NOT NULL "
+        "AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lead_mobile_protected')"
+    ).fetchone()[0]
+    if not ok:
+        raise RuntimeError(
+            "This database does not have the customer-PII protection installed "
+            "(db/pii.sql). Nothing was written. Apply it with: "
+            "python tools/migrate.py db/pii.sql --commit")
+    _PROTECTED.add(key)
 
 
 def redact(value) -> str | None:

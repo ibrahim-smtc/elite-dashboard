@@ -4,17 +4,20 @@ This document contains the API endpoints required for the Perfox inbound/outboun
 
 ---
 
-## Customer PII is not stored in full (policy, 2026-10-08, revised 2026-10-12)
+## Customer PII is not stored readable (policy, 2026-10-08, revised 2026-10-13)
 
-A customer's **phone number, email address and postal address are never
-stored in full**. Every endpoint below still *accepts* them — sending one is
-not an error — but before anything reaches the database a phone number is
-masked to its first three digits (`984*******`), an email to the first three
-characters and the domain (`rav***@gmail.com`), and an address is replaced
-with `[REDACTED]`. A phone or email typed inside a message is masked the same
-way. The same rule is enforced by database triggers, so it also applies to
-anything the agent writes to Supabase directly. (Rows stored before
-2026-10-12 hold `[REDACTED]` instead of a masked value.)
+A customer's **phone number and email address are stored encrypted, and the
+postal address is not stored at all**. Every endpoint below still *accepts*
+them — sending one is not an error. The database encrypts the full phone/email
+with a public key whose private half is kept offline (nothing on the server,
+and no API, can decrypt it), and every field you read back holds only the mask:
+`984*******` for a phone, `rav***@gmail.com` for an email. An address becomes
+`[REDACTED]`. A phone or email typed inside a message is masked. The same
+rules are enforced by database triggers, so they also apply to anything the
+agent writes to Supabase directly — writing a full number into the visible
+column is masked, and the encrypted columns (`*_enc`) cannot be read without
+the private key. (Rows stored before 2026-10-13 have no encrypted copy; before
+2026-10-12 they hold `[REDACTED]`.)
 
 What this means for the agent:
 
