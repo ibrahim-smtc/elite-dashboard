@@ -435,30 +435,32 @@ button.primary:disabled:hover {
   margin-bottom: 26px;
 }
 /* Six figures, three to a row: two even rows rather than a row of four and
-   a row of two. Narrower screens take them two, then one, to a row. */
+   a row of two. Narrower screens take them two, then one, to a row.
+   The lines between the cards are the grid's own colour showing through a
+   one-pixel gap, so they stay exact at three, two or one to a row. */
 .grid-tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  column-gap: 0;
-  row-gap: 0;
+  gap: 1px;
+  background: var(--grid);
+  border-top: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
   margin-bottom: 40px;
 }
 @media (max-width: 1080px) { .grid-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px)  { .grid-tiles { grid-template-columns: minmax(0, 1fr); } }
 
 /* Tile */
-/* Six tiles in two rows read as six boxes; six FIGURES separated by a
-   hairline read as one instrument panel. Only the top rule is drawn, so the
-   row reads across rather than each cell fencing itself off. */
+/* Each figure sits in its own cell, a hairline between it and the next, so
+   the cards read as separate figures and the panel still as one. A cell
+   takes the page's colour, so only the gaps between cells show as lines. */
 .kpi-tile {
-  background: transparent;
+  background: var(--page);
   border: none;
-  border-top: 1px solid var(--grid);
   border-radius: 0;
-  padding: 16px 22px 20px 0;
+  padding: 16px 20px 20px;
   box-shadow: none;
 }
-.kpi-tile:hover { background: transparent; }
 .kpi-tile {
   display: flex;
   flex-direction: column;
@@ -1531,12 +1533,12 @@ tr:hover td { background: rgba(193, 67, 42, 0.035); }
 }
 .panel:hover { border-top-color: var(--shu); }
 
-/* Tiles: the rule warms and the figure settles up a pixel. The number is what
+/* Tiles: the cell warms and the figure settles up a pixel. The number is what
    the eye is on, so it is the thing that acknowledges the pointer. */
 .kpi-tile {
-  transition: border-top-color var(--t-fast) var(--ease-out);
+  transition: background var(--t-fast) var(--ease-out);
 }
-.kpi-tile:hover { border-top-color: var(--shu); }
+.kpi-tile:hover { background: var(--surface-sub); }
 .kpi-tile .val {
   transition: transform var(--t-fast) var(--ease-out),
               color var(--t-fast) var(--ease-out);
@@ -2456,9 +2458,9 @@ tr:hover td { background: rgba(193, 67, 42, 0.035); }
 
 /* ---------------------------------------------------------------- drill-downs */
 /* A figure with records behind it is a button (OverviewDetail). It keeps the
-   tile's look exactly - the base button's box, centring and hover fill would
-   otherwise turn the instrument panel into a row of controls - and keeps the
-   tile's own hover: the rule warms, the figure lifts. */
+   tile's look exactly - the base button's box and centring would otherwise
+   turn the panel into a row of controls - and keeps the tile's own hover:
+   the cell warms, the figure lifts. */
 button.kpi-tile {
   display: flex;
   flex-direction: column;
@@ -2469,13 +2471,14 @@ button.kpi-tile {
   text-align: left;
   font: inherit;
   color: inherit;
-  background: transparent;
+  background: var(--page);
   border: none;
-  border-top: 1px solid var(--grid);
   border-radius: 0;
-  padding: 16px 22px 20px 0;
+  padding: 16px 20px 20px;
 }
-button.kpi-tile:hover { background: transparent; border-top-color: var(--shu); }
+button.kpi-tile:hover { background: var(--surface-sub); }
+/* The focus ring inside the cell, where the lines between cards cannot cut it. */
+button.kpi-tile:focus-visible { outline-offset: -3px; }
 button.kpi-tile:active { transform: none; }
 button.kpi-tile:hover .label { color: var(--ink-2); }
 
