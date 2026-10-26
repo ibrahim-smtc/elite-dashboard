@@ -20,3 +20,7 @@ google-auth-httplib2>=0.1.0
 google-auth-oauthlib>=1.0.0
 # Dashboard sign-in (app/auth.py): verifies Supabase Auth's ES256-signed tokens.
 PyJWT[crypto]>=2.8
+# The Perfox sales agent's lead tools (mcp/leads_server.py), mounted by app/main.py
+# at /leads-mcp. Its other imports (psycopg, psycopg_pool, python-dotenv) are above.
+# Tested on 3.4 and 4.1; the cap keeps a future major release from breaking the build.
+fastmcp>=3.4,<5

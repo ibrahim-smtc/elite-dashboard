@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
@@ -36,6 +37,15 @@ from .mcp_server import router as mcp_router
 from .auth import gate as auth_gate, router as auth_router
 from .pii_reveal import router as pii_reveal_router
 from .events import broker
+
+# The Perfox sales agent's lead tools (SOP 4): mcp/leads_server.py, served by this
+# same service at /leads-mcp/mcp. The folder is called mcp/, and the installed
+# `mcp` package wins over it for `import mcp.leads_server`, so the folder goes on
+# the path and the module is imported by its own name.
+sys.path.append(str(Path(__file__).resolve().parent.parent / "mcp"))
+import leads_server  # noqa: E402  (needs the sys.path line above)
+
+leads_app = leads_server.mcp.http_app(path="/mcp", stateless_http=True, json_response=True)
 
 log = logging.getLogger("dsr.main")
 
@@ -78,10 +88,18 @@ async def lifespan(app: FastAPI):
         pass
 
 
+@asynccontextmanager
+async def lifespan_with_leads(app: FastAPI):
+    # The lead tools' MCP session manager has a lifespan of its own that must run
+    # alongside ours, or every request to /leads-mcp fails.
+    async with lifespan(app), leads_app.lifespan(app):
+        yield
+
+
 app = FastAPI(
     title="Volkswagen Elite Motors - DSR API",
     version="1.0.0",
-    lifespan=lifespan,
+    lifespan=lifespan_with_leads,
     description=(
         "Read API over the Daily Sales Report database for Volkswagen Elite Motors, "
         "Hosur Road, Bengaluru. Stock, enquiries, the order book, consultant "
@@ -104,6 +122,9 @@ app.include_router(calls_router)
 app.include_router(test_drives_router)
 # The Perfox "Dashboard Insights" agent's tool surface.
 app.include_router(mcp_router)
+# The Perfox sales agent's lead tools (create_lead, get_hours_status). A separate MCP
+# from the one above, and outside /api/, so the sign-in gate leaves it open too.
+app.mount("/leads-mcp", leads_app)
 # ROLE-BASED ACCESS (2026-10-13): sign-in (Supabase Auth), and the manager-only
 # reveal of a customer's phone/email. The middleware puts every dashboard API
 # call behind sign-in; the agent's routes stay open - see app/auth.py.
@@ -1441,7 +1462,7 @@ def _config_report() -> dict:
 # a page of HTML that a fetch will fail to parse and report as something else
 # entirely.
 # ---------------------------------------------------------------------
-_NOT_THE_APP = ("api/", "mcp", "static/", "docs", "redoc", "openapi.json", "health")
+_NOT_THE_APP = ("api/", "mcp", "leads-mcp", "static/", "docs", "redoc", "openapi.json", "health")
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
