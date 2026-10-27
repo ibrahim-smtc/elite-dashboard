@@ -47,6 +47,9 @@ import leads_server  # noqa: E402  (needs the sys.path line above)
 
 leads_app = leads_server.mcp.http_app(path="/mcp", stateless_http=True, json_response=True)
 
+import outbound_server # noqa: E402
+outbound_app = outbound_server.mcp.http_app(path="/mcp", stateless_http=True, json_response=True)
+
 log = logging.getLogger("dsr.main")
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -87,12 +90,11 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
-
 @asynccontextmanager
 async def lifespan_with_leads(app: FastAPI):
     # The lead tools' MCP session manager has a lifespan of its own that must run
     # alongside ours, or every request to /leads-mcp fails.
-    async with lifespan(app), leads_app.lifespan(app):
+    async with lifespan(app), leads_app.lifespan(app), outbound_app.lifespan(app):
         yield
 
 
@@ -125,6 +127,7 @@ app.include_router(mcp_router)
 # The Perfox sales agent's lead tools (create_lead, get_hours_status). A separate MCP
 # from the one above, and outside /api/, so the sign-in gate leaves it open too.
 app.mount("/leads-mcp", leads_app)
+app.mount("/outbound-mcp", outbound_app)
 # ROLE-BASED ACCESS (2026-10-13): sign-in (Supabase Auth), and the manager-only
 # reveal of a customer's phone/email. The middleware puts every dashboard API
 # call behind sign-in; the agent's routes stay open - see app/auth.py.
@@ -1462,7 +1465,7 @@ def _config_report() -> dict:
 # a page of HTML that a fetch will fail to parse and report as something else
 # entirely.
 # ---------------------------------------------------------------------
-_NOT_THE_APP = ("api/", "mcp", "leads-mcp", "static/", "docs", "redoc", "openapi.json", "health")
+_NOT_THE_APP = ("api/", "mcp", "leads-mcp", "outbound-mcp", "static/", "docs", "redoc", "openapi.json", "health")
 
 
 @app.get("/{full_path:path}", include_in_schema=False)

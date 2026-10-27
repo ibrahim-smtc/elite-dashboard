@@ -44,3 +44,7 @@ tmp/
 elite-pii-key/
 PRIVATE-KEY*
 private-keys-v1.d/
+
+# Google Cloud Service Account keys
+*service_account*.json
+google_key.json

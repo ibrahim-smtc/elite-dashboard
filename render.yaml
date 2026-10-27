@@ -31,3 +31,12 @@ services:
       # A manager's reveal (app/pii_reveal.py): the PRIVATE key. A secret.
       - key: PII_PRIVATE_KEY
         sync: false
+      # Outbound call Google Sheets write-back
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: SHEET_ID
+        sync: false
+      - key: SHEET_TAB
+        sync: false
+      - key: OUTBOUND_MCP_TOKEN
+        sync: false
